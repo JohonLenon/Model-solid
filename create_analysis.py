@@ -48,6 +48,12 @@ def create_analysis():
     timeInterval=0.0005,
     region=assembly.sets['Regiao-RPEndB'])
 
+    model.FieldOutputRequest(
+    name='F-Output-1',
+    createStepName=nome_step,
+    variables=PRESELECT
+    )
+
     model.fieldOutputRequests['F-Output-1'].setValues(
         numIntervals=1000,
     )

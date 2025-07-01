@@ -4,17 +4,16 @@ from caeModules import regionToolset
 from abaqusConstants import * # type: ignore
 from set_dados_gerais import model, obter_chave_ordenacao, nome_step, cilindros
 
-def create_contact(step = nome_step, gerar_surf = True):
+def create_contact(step = 'Initial', gerar_surf = True):
     assembly = model.rootAssembly
     if gerar_surf:
         for i, (keys, values) in enumerate(cilindros.items()):
             model.rootAssembly.Surface(side1Faces=assembly.instances[keys].faces, name=f'Surf-{keys}-1')
             model.rootAssembly.Surface(side2Faces=assembly.instances[keys].faces, name=f'Surf-{keys}-2')
-    else:
-        for key, values in model.interactions.items():
-            if step not in key:
-                model.interactions[key].deactivate(step)
-
+    # else:
+    #     for key, values in model.interactions.items():
+    #         if step not in key:
+    #             model.interactions[key].deactivate(step)
 
     surf_1 = [x for x in list(assembly.surfaces.keys()) if x.endswith('1')]
     surf_1.append(f'Surf-InnerArmour-1')

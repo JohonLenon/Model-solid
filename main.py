@@ -1,5 +1,7 @@
 import os
 import sys
+
+os.chdir(r'C:\Users\Johon\Desktop\Arquivos Importantes\Pessoal\Dissertação\Algoritmos')
 sys.path.append(os.getcwd())
 
 from create_material import create_material
