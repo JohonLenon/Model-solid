@@ -2,9 +2,10 @@
 
 from abaqus import mdb
 from abaqusConstants import * # type: ignore
-from set_dados_gerais import model, nome_step, pitch, fios, nome_buildup, create_region, numVoltas, nome_modelo
+from create_region import create_region
+from set_dados_gerais import nome_step, pitch, fios, nome_buildup, numVoltas, nome_modelo
 
-def create_analysis():
+def create_analysis(model):
     passo = pitch(fios["InnerArmour"][3]/2, fios["InnerArmour"][0])
     assembly = model.rootAssembly
     periodoAnalise = 3
@@ -17,8 +18,8 @@ def create_analysis():
     name= nome_step, previous=nome_buildup, timePeriod=periodoAnalise, 
     timeIncrementationMethod=AUTOMATIC_GLOBAL, maxIncrement = 0.0000002)
 
-    endA = create_region(0)
-    endB = create_region(numVoltas*passo)
+    endA = create_region(model, 0)
+    endB = create_region(model, numVoltas*passo)
 
     model.TabularAmplitude(name='Amplitude', data=((0,0),(0.001,0),(1,1/periodoAnalise),))
 

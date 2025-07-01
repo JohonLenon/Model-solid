@@ -2,9 +2,9 @@
 
 from caeModules import regionToolset
 from abaqusConstants import * # type: ignore
-from set_dados_gerais import model, obter_chave_ordenacao, nome_step, cilindros
+from set_dados_gerais import obter_chave_ordenacao, nome_step, cilindros
 
-def create_contact(step = 'Initial', gerar_surf = True):
+def create_contact(model, step = 'Initial', gerar_surf = True):
     assembly = model.rootAssembly
     if gerar_surf:
         for i, (keys, values) in enumerate(cilindros.items()):

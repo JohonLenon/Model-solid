@@ -4,9 +4,8 @@ Nessa função crio todos os materiais utilizados no modelo.
 
 from abaqusConstants import * # type: ignore
 from caeModules import * # type: ignore
-from set_dados_gerais import model
 
-def create_material():
+def create_material(model):
     # Cria material
     # =====================================================================================================================
     material = model.Material(name='METALLICMaterial')

@@ -9,6 +9,7 @@ numVoltas = 2
 n_pontos = 100
 nome_step = 'Step_Explict'
 nome_buildup = 'Step_BuildUp'
+nome_modelo = 'ModeloRiser'
 
 fios = {
         "InnerArmour": [35, OFF, 40, 97],
@@ -50,26 +51,13 @@ passo = pitch(fios["InnerArmour"][3]/2, fios["InnerArmour"][0])
 
 # Construção de um plano de sketch
 # =====================================================================================================================
-nome_modelo = 'ModeloRiser'
-mdb.Model(name='Model-1')
-if nome_modelo in mdb.models.keys():
-    del mdb.models[nome_modelo]
-mdb.Model(name=nome_modelo)
-model = mdb.models[nome_modelo]
-del mdb.models['Model-1']
+# nome_modelo = 'ModeloRiser'
+# mdb.Model(name='Model-1')
+# if nome_modelo in mdb.models.keys():
+#     del mdb.models[nome_modelo]
+# mdb.Model(name=nome_modelo)
+# model = mdb.models[nome_modelo]
+# del mdb.models['Model-1']
 
-s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
+# s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
 # s.setPrimaryObject(option=STANDALONE)
-
-def create_region(y_fixo):
-    assembly = model.rootAssembly
-    verticesNoPlano = list()
-    arestasNoPlano = list()
-    for nome_instancia in assembly.instances.keys():
-        instancia = assembly.instances[nome_instancia]
-        if nome_instancia.lower() not in (chave.lower() for chave in cilindros):
-            vertices = instancia.vertices
-            verticesNoPlano.append(vertices.getByBoundingBox(yMin=y_fixo-10, yMax=y_fixo+10))
-        else:
-            arestasNoPlano.append(instancia.edges.getByBoundingBox(yMin=y_fixo-10, yMax=y_fixo+10))
-    return model.rootAssembly.Set(vertices=verticesNoPlano, edges=arestasNoPlano, name=f'RegiaoY-{abs(int(y_fixo))}')

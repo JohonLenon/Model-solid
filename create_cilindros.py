@@ -1,9 +1,9 @@
 from caeModules import mesh
 from abaqusConstants import * # type: ignore
-from set_dados_gerais import model, pitch, fios, numVoltas, s, cilindros
+from set_dados_gerais import pitch, fios, numVoltas, cilindros
 
 
-def create_cilindros():
+def create_cilindros(model, s):
     passo = pitch(fios["InnerArmour"][3]/2, fios["InnerArmour"][0])
     partes, p2 = list(), list()
     for i, (keys, values) in enumerate(cilindros.items()):

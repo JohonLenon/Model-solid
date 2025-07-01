@@ -5,9 +5,9 @@ Nessa função são criados os fios da armadura de tração com elementos de vig
 from caeModules import mesh
 from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos
-from set_dados_gerais import model, pitch, n_pontos, numVoltas, height, width, fios
+from set_dados_gerais import pitch, n_pontos, numVoltas, height, width, fios
 
-def create_tension_armour_beam():
+def create_tension_armour_beam(model):
     passo = list()
     for i, (keys, values) in enumerate(fios.items()):
         # Gera geometria
