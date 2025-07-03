@@ -5,15 +5,16 @@ from abaqusConstants import ON, OFF, DEFORMABLE_BODY, S4
 from numpy import pi, tan, radians
 
 width, height = 3, 6
-numVoltas = 2
-n_pontos = 100
+numVoltas = 5
+n_pontos = 1000
+limit_length = 500
 nome_step = 'Step_Explict'
 nome_buildup = 'Step_BuildUp'
 nome_modelo = 'ModeloRiser'
 
 fios = {
-        "InnerArmour": [35, OFF, 40, 97],
-        "OuterArmour": [-35, ON, 44, 104.5]
+        "InnerArmour": [ 35, 40, 97],
+        "OuterArmour": [-35, 44, 104.5]
         }
 
 cilindros ={
@@ -47,7 +48,7 @@ def obter_chave_ordenacao(s):
 def pitch(R, angle):
     p = 2*pi*R*tan(radians(angle))
     return p
-passo = pitch(fios["InnerArmour"][3]/2, fios["InnerArmour"][0])
+passo = pitch(fios["InnerArmour"][2]/2, fios["InnerArmour"][0])
 
 # Construção de um plano de sketch
 # =====================================================================================================================

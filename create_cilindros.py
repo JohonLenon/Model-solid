@@ -1,10 +1,11 @@
 from caeModules import mesh
 from abaqusConstants import * # type: ignore
-from set_dados_gerais import pitch, fios, numVoltas, cilindros
+from set_dados_gerais import pitch, fios, numVoltas, cilindros, limit_length
 
 
 def create_cilindros(model, s):
-    passo = pitch(fios["InnerArmour"][3]/2, fios["InnerArmour"][0])
+    passo = min(pitch(fios["InnerArmour"][2]/2, fios["InnerArmour"][0]), limit_length)
+    print(f"O passo é {passo}.\n")
     partes, p2 = list(), list()
     for i, (keys, values) in enumerate(cilindros.items()):
         # Gera geometria

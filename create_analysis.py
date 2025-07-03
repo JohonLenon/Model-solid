@@ -6,7 +6,7 @@ from create_region import create_region
 from set_dados_gerais import nome_step, pitch, fios, nome_buildup, numVoltas, nome_modelo
 
 def create_analysis(model):
-    passo = pitch(fios["InnerArmour"][3]/2, fios["InnerArmour"][0])
+    passo = pitch(fios["InnerArmour"][2]/2, fios["InnerArmour"][0])
     assembly = model.rootAssembly
     periodoAnalise = 3
 
