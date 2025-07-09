@@ -14,16 +14,16 @@ nome_modelo = 'ModeloRiser'
 
 fios = {
         "InnerArmour": [ 35, 40, 97],
-        "OuterArmour": [-35, 44, 104.5]
+        "OuterArmour": [-35, 44, 106]
         }
 
 cilindros ={
     "InterlockedCarcass": [63.2, DEFORMABLE_BODY, S4, 'METALLIC', 3.5],
     "PressureSheath": [70.2, DEFORMABLE_BODY, S4, 'HDPE', 4.95],
-    "PressureReinforcement": [80.1, DEFORMABLE_BODY, S4, 'METALLIC', 6.2],
-    "InnerAntiFrictionTape": [92.5, DEFORMABLE_BODY, S4, 'HDPE', 1.5],
-    "OuterAntiFrictionTape": [101.5, DEFORMABLE_BODY, S4, 'HDPE', 1.5],
-    "FabricTape": [110.5, DEFORMABLE_BODY, S4, 'HDPE', 0.5],
+    # "PressureReinforcement": [80.1, DEFORMABLE_BODY, S4, 'METALLIC', 6.2],
+    # "InnerAntiFrictionTape": [92.5, DEFORMABLE_BODY, S4, 'HDPE', 1.5],
+    # "OuterAntiFrictionTape": [101.5, DEFORMABLE_BODY, S4, 'HDPE', 1.5],
+    # "FabricTape": [110.5, DEFORMABLE_BODY, S4, 'HDPE', 0.5],
 }
 
 camadas =[

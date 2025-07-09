@@ -18,15 +18,15 @@ class cilindros:
         # Cria geometria
         s.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius))
         part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-        shell_part = model.parts[self.name]
-        shell_part.BaseShellExtrude(sketch=s, depth= self.pitch)
-        shell_part.setValues(geometryRefinement=EXTRA_FINE)
+        # part = model.parts[self.name]
+        part.BaseShellExtrude(sketch=s, depth= self.pitch)
+        part.setValues(geometryRefinement=EXTRA_FINE)
         print(f"Geometria {self.name} criada. \n")
 
         # Cria malha
-        shell_part.seedPart(size=5)
-        shell_part.setElementType(regions=((shell_part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4),))
-        shell_part.generateMesh()
+        part.seedPart(size=5)
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4),))
+        part.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
         # Cria material
@@ -42,8 +42,8 @@ class cilindros:
 
         # Cria seção e associa material
         model.HomogeneousShellSection(name=f'Section_{self.name}', material=self.name_material, thickness=self.thickness)
-        region = shell_part.Set(faces=shell_part.faces, name=f'Set-{self.name}')
-        shell_part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+        region = part.Set(faces=part.faces, name=f'Set-{self.name}')
+        part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=BOTTOM_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
 
         # Cria assembly e posiciona
         assembly = model.rootAssembly
@@ -101,9 +101,24 @@ class tension_armour:
         p.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
+        try:
+            material = model.materials[self.name_material]
+        except:
+            material = model.Material(name=f'{self.name_material}')
+            material.Elastic(table=((self.young_modulus, self.poisson),))
+            material.Density(table=((self.density,),))
+
+            sigma_y = 650
+            Et = 1172.58
+            sigma_plastic = sigma_y + 10
+            epsilon_plastic = (sigma_plastic - sigma_y) / Et
+            material.Plastic(table=((sigma_y, 0.0), (sigma_plastic, epsilon_plastic)))
+
+            print(f"Material {material.name} criado.\n")
+
         # Cria perfil, seção e associa material
         model.RectangularProfile(name= self.name+'_Profile', a=self.width, b=self.height)
-        model.BeamSection(name= self.name+'_Section', integration=DURING_ANALYSIS, profile= self.name+'_Profile', material='METALLICMaterial')
+        model.BeamSection(name= self.name+'_Section', integration=DURING_ANALYSIS, profile= self.name+'_Profile', material='METALLIC')
         p.SectionAssignment(region=region, sectionName= self.name+'_Section', thicknessAssignment=FROM_SECTION)
         print(f"Perfil, seção e materiais para {self.name} atribuídos. \n")
 
