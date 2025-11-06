@@ -1,64 +1,39 @@
 """Nessa função são definidos todos os dados gerais do modelo."""
 
-from abaqus import mdb
-from abaqusConstants import ON, OFF, DEFORMABLE_BODY, S4
+from abaqusConstants import ON, OFF
 from numpy import pi, tan, radians
+from set_camadas import cilindros, cilindros_ortotropicos, tension_armour
 
-width, height = 3, 6
-numVoltas = 5
-n_pontos = 1000
-limit_length = 500
-nome_step = 'Step_Explict'
-nome_buildup = 'Step_BuildUp'
-nome_modelo = 'ModeloRiser'
-
-fios = {
-        "InnerArmour": [ 35, 40, 97],
-        "OuterArmour": [-35, 44, 106]
-        }
-
-cilindros ={
-    "InterlockedCarcass": [63.2, DEFORMABLE_BODY, S4, 'METALLIC', 3.5],
-    "PressureSheath": [70.2, DEFORMABLE_BODY, S4, 'HDPE', 4.95],
-    # "PressureReinforcement": [80.1, DEFORMABLE_BODY, S4, 'METALLIC', 6.2],
-    # "InnerAntiFrictionTape": [92.5, DEFORMABLE_BODY, S4, 'HDPE', 1.5],
-    # "OuterAntiFrictionTape": [101.5, DEFORMABLE_BODY, S4, 'HDPE', 1.5],
-    # "FabricTape": [110.5, DEFORMABLE_BODY, S4, 'HDPE', 0.5],
+names = {
+    "Model": "ModeloRiser",
+    "Step": "Step_Explicit",
 }
 
-camadas =[
-    "InterlockedCarcass",
-    "PressureSheath",
-    "PressureReinforcement",
-    "InnerAntiFrictionTape",
-    "InnerArmour",
-    "OuterAntiFrictionTape",
-    "OuterArmour",
-    "FabricTape"]
+layers = {
+    "InterlockedCarcass": {"type": cilindros_ortotropicos, "name": "InterlockedCarcass", "pitch": None, "internal_diameter": 66.7, "thickness": 3.5, "name_material": "AISI304", "young_modulus": 193000,"poisson": 0.3,"density": 7.85*10**(-9), "Ix": 556, "Iy": 20, "A": 19.6, "J": 6.5, "plastic_table": None},
 
-ordem_camadas = {camada: idx for idx, camada in enumerate(camadas)}
+    "PressureSheath": {"type": cilindros, "name": "PressureSheath", "pitch": None, "internal_diameter": 75.15, "thickness":  4.95, "name_material": "Grilamid", "young_modulus": 284,"poisson": 0.4,"density": 0.97*10**(-9),"plastic_table": None},
+
+    "PressureReinforcement": {"type": cilindros_ortotropicos, "name": "PressureReinforcement", "pitch": None, "internal_diameter": 86.3, "thickness":  6.2, "name_material": "FI15", "young_modulus": 207000,"poisson": 0.3,"density": 7.85*10**(-9), "Ix": 771, "Iy": 100, "A": 51.5, "J": 204.6, "plastic_table": None},
+
+    "InnerAntiFrictionTape": {"type": cilindros, "name": "InnerAntiFrictionTape", "pitch": None, "internal_diameter": 94, "thickness": 1.5, "name_material": "Rilsan", "young_modulus": 301,"poisson": 0.4,"density": 0.97*10**(-9),"plastic_table": None},
+
+    "InnerArmour": {"type": tension_armour, "name": "InnerArmour", "pitch": None, "lay_angle": 35, "number_strips": 40, "internal_diameter": 95.5, "height":6, "width": 3, "points": 1000, "name_material": "FI41", "young_modulus": 211000, "poisson": 0.3, "density": 7.85*10**(-9), "revolve_direction": OFF, "plastic_table": None, "length": 0},
+
+    "OuterAntiFrictionTape": {"type": cilindros, "name": "OuterAntiFrictionTape", "pitch": None, "internal_diameter": 103, "thickness": 1.5, "name_material": "Rilsan", "young_modulus": 301,"poisson": 0.4,"density": 0.97*10**(-9),"plastic_table": None},
+
+    "OuterArmour": {"type": tension_armour, "name": "OuterArmour", "pitch": None, "lay_angle": 35, "number_strips": 44, "internal_diameter": 104.5, "height":6, "width": 3, "points": 1000, "name_material": "FI41", "young_modulus": 211000, "poisson": 0.3, "density": 7.85*10**(-9), "revolve_direction": ON, "plastic_table": None, "length": 0},
+
+    "FabricTape": {"type": cilindros, "name": "FabricTape", "pitch": None, "internal_diameter": 111, "thickness": 0.5, "name_material": "HDPE", "young_modulus": 600,"poisson": 0.45,"density": 0.97*10**(-9),"plastic_table": None}
+}
+
+layer_order = {layer: idx for idx, layer in enumerate(layers)}
 def obter_chave_ordenacao(s):
     parte = s.replace("Surf-", "")
     if "-" in parte:
         parte = "-".join(parte.split("-")[:-1])
-    return ordem_camadas.get(parte, float('inf'))
+    return layer_order.get(parte, float('inf'))
 
-# Cálculo do passo de hélice
-# =====================================================================================================================
 def pitch(R, angle):
-    p = 2*pi*R*tan(radians(angle))
+    p = 2*pi*R/tan(radians(angle))
     return p
-passo = pitch(fios["InnerArmour"][2]/2, fios["InnerArmour"][0])
-
-# Construção de um plano de sketch
-# =====================================================================================================================
-# nome_modelo = 'ModeloRiser'
-# mdb.Model(name='Model-1')
-# if nome_modelo in mdb.models.keys():
-#     del mdb.models[nome_modelo]
-# mdb.Model(name=nome_modelo)
-# model = mdb.models[nome_modelo]
-# del mdb.models['Model-1']
-
-# s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
-# s.setPrimaryObject(option=STANDALONE)
