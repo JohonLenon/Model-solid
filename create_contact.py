@@ -44,8 +44,7 @@ def create_contact(model, step = 'Initial'):
             if 'innerarmour' in camada_1.lower():
                 for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "innerarmour" in x.lower()], 1):
                     instancia = assembly.instances[nome_instancia]
-                    region = regionToolset.Region(faces=instancia.faces)
-                    # region = regionToolset.Region(edges=instancia.edges)
+                    region = regionToolset.Region(edges=instancia.edges)
                     model.SurfaceToSurfaceContactExp(
                         name=f'Contato_{camada_1}_{camada_2}-{i}',
                         createStepName=step,
@@ -53,13 +52,12 @@ def create_contact(model, step = 'Initial'):
                         secondary=region,
                         sliding=FINITE,
                         interactionProperty=nome_contato,
-                        mechanicalConstraint=KINEMATIC# if step == names['Step'] else PENALTY,
+                        mechanicalConstraint=KINEMATIC
                     )
             elif 'innerarmour' in camada_2.lower():
                 for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "innerarmour" in x.lower()], 1):
                     instancia = assembly.instances[nome_instancia]
-                    region = regionToolset.Region(faces=instancia.faces)
-                    # region = regionToolset.Region(edges=instancia.edges)
+                    region = regionToolset.Region(edges=instancia.edges)
                     model.SurfaceToSurfaceContactExp(
                         name=f'Contato_{camada_1}_{camada_2}-{i}',
                         createStepName=step,
@@ -67,13 +65,12 @@ def create_contact(model, step = 'Initial'):
                         secondary=region,
                         sliding=FINITE,
                         interactionProperty=nome_contato,
-                        mechanicalConstraint=KINEMATIC# if step == names['Step'] else PENALTY,
+                        mechanicalConstraint=KINEMATIC
                     )
             elif 'outerarmour' in camada_1.lower():
                     for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "outerarmour" in x.lower()], 1):
                         instancia = assembly.instances[nome_instancia]
-                        region = regionToolset.Region(faces=instancia.faces)
-                        # region = regionToolset.Region(edges=instancia.edges)
+                        region = regionToolset.Region(edges=instancia.edges)
                         model.SurfaceToSurfaceContactExp(
                             name=f'Contato_{camada_1}_{camada_2}-{i}',
                             createStepName=step,
@@ -81,13 +78,12 @@ def create_contact(model, step = 'Initial'):
                             secondary=region,
                             sliding=FINITE,
                             interactionProperty=nome_contato,
-                            mechanicalConstraint=KINEMATIC# if step == names['Step'] else PENALTY,
+                            mechanicalConstraint=KINEMATIC
                         )
             elif 'outerarmour' in camada_2.lower():
                 for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "outerarmour" in x.lower()], 1):
                     instancia = assembly.instances[nome_instancia]
-                    region = regionToolset.Region(faces=instancia.faces)
-                    # region = regionToolset.Region(edges=instancia.edges)
+                    region = regionToolset.Region(edges=instancia.edges)
                     model.SurfaceToSurfaceContactExp(
                         name=f'Contato_{camada_1}_{camada_2}-{i}',
                         createStepName=step,
@@ -95,7 +91,7 @@ def create_contact(model, step = 'Initial'):
                         secondary=region,
                         sliding=FINITE,
                         interactionProperty=nome_contato,
-                        mechanicalConstraint=KINEMATIC# if step == names['Step'] else PENALTY,
+                        mechanicalConstraint=KINEMATIC
                     )
             else:
                 print(f"Contato entre {camada_1} e {camada_2}.\n")
@@ -106,7 +102,7 @@ def create_contact(model, step = 'Initial'):
                     secondary=assembly.surfaces[camada_2],
                     sliding=FINITE,
                     interactionProperty=nome_contato,
-                    mechanicalConstraint=KINEMATIC# if step == names['Step'] else PENALTY,
+                    mechanicalConstraint=KINEMATIC
                 )
         except Exception as e:
             print(f"{e.__class__.__name__}: {str(e)}.\n")

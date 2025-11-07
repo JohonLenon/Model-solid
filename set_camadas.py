@@ -1,8 +1,12 @@
 from caeModules import mesh
 from abaqusConstants import * # type: ignore
-from numpy import pi, sin, cos, sign
+from numpy import pi, sin, cos, tan, radians, sign
 
-discretizacao = 20
+discretizacao = 10
+
+def pitch(R, angle):
+    p = 2*pi*R/tan(radians(angle))
+    return p
 
 class cilindros:
     def __init__(self, name, pitch, internal_diameter, thickness, name_material, young_modulus, poisson, density, plastic_table = None):
@@ -59,7 +63,7 @@ class cilindros:
         print(f"Assembly {self.name} criado. \n")
 
 class cilindros_ortotropicos:
-    def __init__(self, name, pitch, internal_diameter, thickness, name_material, young_modulus, poisson, density, Ix, Iy, A, J, plastic_table = None):
+    def __init__(self, name, pitch, internal_diameter, thickness, name_material, young_modulus, poisson, density, Ix, Iy, A, J, lay_angle, plastic_table = None):
         self.name = name
         self.pitch = pitch
         self.internal_diameter = internal_diameter
@@ -73,6 +77,7 @@ class cilindros_ortotropicos:
         self.Iy = Iy
         self.A = A
         self.J = J
+        self.lay_angle = lay_angle
         self.plastic_table = plastic_table
     def create_geometry(self, model):
         # Cria geometria
@@ -96,12 +101,15 @@ class cilindros_ortotropicos:
         except:
             material = model.Material(name=self.name_material)
             n = 1
-            Ieq = 12*self.Iy**2/self.pitch * (1-self.poisson**2)/self.thickness**3
+            passo = pitch(self.radius+self.thickness, self.lay_angle)
+            Ieq = 12*self.Iy**2/passo * (1-self.poisson**2)/self.thickness**3
             hs = (12*Ieq/self.A)**(1/2)
-            E2 = (n*self.A)/(self.pitch*hs)*self.young_modulus
-            G12 = (3*n*self.J)/(self.pitch*hs**3)
+            Eeq = (n*self.A)/(passo*hs)*self.young_modulus
+            Geq = (3*n*self.J)/(passo*hs**3)
 
-            material.Elastic(type=LAMINA, table=((0, E2, self.poisson, G12, 0, 0),))
+            print(fr"Os parâmetros calculados são I_{{eq}}:{Ieq:.4f}, hs:{hs:.4f}, E_2:{Eeq:.4f}, G_{{12}}:{Geq:.4f}\n.")
+
+            material.Elastic(type=LAMINA, table=((Eeq*sin(self.lay_angle), Eeq*cos(self.lay_angle), self.poisson, Geq*sin(self.lay_angle), 0, 0),))
             material.Density(table=((self.density,),))
             if self.plastic_table is not None:
                 material.Plastic(table=self.plastic_table) 
@@ -114,8 +122,6 @@ class cilindros_ortotropicos:
         compositeLayup.Section(preIntegrate=OFF, integrationRule=SIMPSON, thicknessType=UNIFORM, poissonDefinition=DEFAULT, temperature=GRADIENT, useDensity=OFF)
         compositeLayup.ReferenceOrientation(orientationType=GLOBAL, localCsys=None, fieldName='', additionalRotationType=ROTATION_NONE, angle=0.0, axis=AXIS_2)
         compositeLayup.CompositePly(suppressed=False, plyName='Ply-1', region=region, material=self.name_material, thicknessType=SPECIFY_THICKNESS, thickness=self.thickness, orientationType=SPECIFY_ORIENT, orientationValue=0.0, additionalRotationType=ROTATION_NONE, additionalRotationField='', axis=AXIS_3, angle=0.0, numIntPoints=3)
-
-        # part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
 
         # Cria assembly e posiciona
         assembly = model.rootAssembly

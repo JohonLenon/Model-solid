@@ -30,8 +30,8 @@ def reload_modules(exclude=("main",)):
             importlib.import_module(module_name)
 reload_modules()
 
-from set_dados_gerais import names, layers, pitch
-from set_camadas import tension_armour
+from set_dados_gerais import names, layers
+from set_camadas import tension_armour, pitch
 from create_contact import create_contact
 from create_analysis import create_analysis
 
