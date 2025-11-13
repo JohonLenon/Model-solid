@@ -32,7 +32,7 @@ reload_modules()
 
 from set_dados_gerais import names, layers
 from set_camadas import tension_armour, pitch
-from create_contact import create_contact
+from create_contact import create_contact, create_general
 from create_analysis import create_analysis
 
 nome_modelo = names["Model"]
@@ -60,5 +60,6 @@ for name, layer in layers.items():
     obj = type(**kwargs)
     obj.create_geometry(model)
 
-create_contact(model)
+# create_contact(model)
+create_general(model)
 create_analysis(model, passo)

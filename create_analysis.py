@@ -51,12 +51,12 @@ def create_analysis(model, passo):
     )
 
     model.fieldOutputRequests['F-Output-1'].setValues(
-        numIntervals=100,
+        numIntervals=1000,
     )
 
     model.DisplacementBC(name="endA", createStepName= names['Step'], region=regiao_refEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET,
     ur3=SET, amplitude=UNSET)
-    model.DisplacementBC(name="endB", createStepName= names['Step'], region=regiao_refEndB, u1=UNSET, u2=0.03*passo, u3=UNSET, ur1=UNSET, ur2=UNSET,
+    model.DisplacementBC(name="endB", createStepName= names['Step'], region=regiao_refEndB, u1=UNSET, u2=0.006*passo, u3=UNSET, ur1=UNSET, ur2=UNSET,
     ur3=UNSET, amplitude='Amplitude')
 
     job_name = 'Job-Explicit'
