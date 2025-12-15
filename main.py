@@ -6,7 +6,7 @@ from pathlib import Path
 
 os.chdir(r'C:\Users\Johon\Desktop\Arquivos Importantes\Pessoal\Dissertação\Algoritmos')
 sys.path.append(os.getcwd())
-sys.stdout = sys.__stdout__
+# sys.stdout = sys.__stdout__
 
 def reload_modules(exclude=("main",)):
     """
@@ -46,7 +46,7 @@ s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
 
 for name, layer in layers.items():
     if layer["type"] == tension_armour:
-        layer["pitch"] = pitch(layer['internal_diameter']/2, layer['lay_angle'])
+        layer["pitch"] = pitch(layer['mid_diameter']/2, layer['lay_angle'])
         layer["length"] = layer['pitch']
 passo = min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
 layers[max((name for name, layer in layers.items() if layer["type"] == tension_armour), key=lambda n: layers[n]["pitch"])]['length']=passo
@@ -61,5 +61,5 @@ for name, layer in layers.items():
     obj.create_geometry(model)
 
 # create_contact(model)
-create_general(model)
 create_analysis(model, passo)
+create_general(model)
