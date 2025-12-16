@@ -3,6 +3,7 @@
 from caeModules import regionToolset
 from abaqusConstants import * # type: ignore
 from set_dados_gerais import layers, obter_chave_ordenacao, names
+from set_camadas import cilindros_ortotropicos
 from numpy import sqrt
 
 def contact_props(model, nome_contato, tension = False):
@@ -159,10 +160,13 @@ def create_contact_surfaces(model, nome_contato = "GeneralContact"):
     for item, values in contatos.items():
         contact_props(model, item, values)
 
-    for key in layers.keys():
-        if "Armour" not in key:
+    for key, values in layers.items():
+        if "Armour" not in key and values['type'] is not cilindros_ortotropicos:
             model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces[0:1], name=f'Surf-{key}-1')
             model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces[1:2], name=f'Surf-{key}-2')
+        elif values['type'] == cilindros_ortotropicos:
+            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
+            model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
 
     surf_1 = [x for x in list(assembly.surfaces.keys()) if x.endswith('1')]
     surf_1.append(f'Surf-InnerArmour-1')

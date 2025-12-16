@@ -1,6 +1,7 @@
 import os
 import sys
-from abaqus import mdb
+from abaqus import mdb, session
+from abaqusConstants import * # type: ignore
 import importlib
 from pathlib import Path
 
@@ -63,3 +64,6 @@ for name, layer in layers.items():
 # create_contact(model)
 create_analysis(model, passo)
 create_general(model)
+
+session.viewports['Viewport: 1'].assemblyDisplay.geometryOptions.setValues(
+datumAxes=OFF, datumPlanes=OFF)

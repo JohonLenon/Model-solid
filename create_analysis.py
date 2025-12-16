@@ -20,10 +20,12 @@ def create_analysis(model, passo):
     endA = create_region(model, 0)
     endB = create_region(model, passo)
 
-    model.TabularAmplitude(name='Amplitude', data=((0,0),(0.001,0),(1,1/periodoAnalise),))
+    model.TabularAmplitude(name='Amplitude', data=((0,0),(1,1/periodoAnalise),))
 
     assembly.ReferencePoint(point=(0,0,0))
     assembly.ReferencePoint(point=(0,passo,0))
+
+    assembly.DatumCsysByThreePoints(name="Cilindrico", coordSysType= CYLINDRICAL, origin=(0,0,0), point1=(1,0,0), point2=(0,0,1))
 
     refEndA = assembly.referencePoints[assembly.referencePoints.keys()[-1]]
     regiao_refEndA = assembly.Set(referencePoints=(refEndA,), name='Regiao-RPEndA')
@@ -31,8 +33,10 @@ def create_analysis(model, passo):
     refEndB = assembly.referencePoints[assembly.referencePoints.keys()[-2]]
     regiao_refEndB = assembly.Set(referencePoints=(refEndB,), name='Regiao-RPEndB')
 
-    model.Coupling(name='CouplingEndA', surface=endA, controlPoint=regiao_refEndA, influenceRadius=WHOLE_SURFACE, couplingType=DISTRIBUTING)
-    model.Coupling(name='CouplingEndB', surface=endB, controlPoint=regiao_refEndB, influenceRadius=WHOLE_SURFACE, couplingType=DISTRIBUTING)
+    k = [k for k, v in assembly.datums.items() if v.__class__.__name__ == 'DatumCsys']
+
+    model.Coupling(name='CouplingEndA', surface=endA, controlPoint=regiao_refEndA, u1 = OFF, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC, localCsys=assembly.datums[k[0]])
+    model.Coupling(name='CouplingEndB', surface=endB, controlPoint=regiao_refEndB, u1 = OFF, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC, localCsys=assembly.datums[k[0]])
 
     # model.HistoryOutputRequest(
     # name='H-Output-EndA',

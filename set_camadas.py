@@ -2,7 +2,7 @@ from caeModules import mesh
 from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos, tan, radians, sign
 
-discretizacao = 7
+discretizacao = 6
 
 def pitch(R, angle, number_pitches=1):
     p = number_pitches*2*pi*R/tan(radians(angle))
@@ -33,7 +33,7 @@ class cilindros:
 
         # Cria malha
         part.seedPart(size=discretizacao)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4),))
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
@@ -92,7 +92,8 @@ class cilindros_ortotropicos:
 
         # Cria malha
         part.seedPart(size=discretizacao)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4,elemLibrary=EXPLICIT),))
+        part.setMeshControls(regions=part.cells, algorithm=MEDIAL_AXIS)
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
@@ -119,7 +120,7 @@ class cilindros_ortotropicos:
 
             print(fr"Os parâmetros calculados são K:{K:.4f}, teq:{teq:.4f}, E_2:{Eeq:.4f}, G_{{12}}:{Geq:.4f}\n.")
 
-            mat = material.Elastic(type=LAMINA, table=((Eeq*sin(radians(self.lay_angle)), Eeq*cos(radians(self.lay_angle)), self.poisson, Geq, Geq, Geq),))
+            mat = material.Elastic(type=LAMINA, table=((Eeq*sin(radians(self.lay_angle))/1000, Eeq*cos(radians(self.lay_angle))/1000, self.poisson, Geq/1000, Geq/1000, Geq/1000),))
             print(mat)
             material.Density(table=((self.density,),))
             if self.plastic_table is not None:
@@ -320,7 +321,7 @@ class tension_armour:
             print(f"Geometria {self.name} criada. \n")
 
             # Gera malha
-            p.seedPart(size=discretizacao)
+            p.seedPart(size=discretizacao/2)
             p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R),))
             p.generateMesh()
             print(f"Malha {self.name} criada. \n")
