@@ -1,3 +1,5 @@
+Versão 2025-01-15: Criação de armadura de pressão 3D.
+
 Versão 2025-12-15: Ajustes de penetrações iniciais no contato.
 
 Versão 2025-11-13: Início do desenvolvimento de uma carcaça intertravada 3D.
