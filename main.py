@@ -7,7 +7,7 @@ from pathlib import Path
 
 os.chdir(r'C:\Users\Johon\Desktop\Arquivos Importantes\Pessoal\Dissertação\Algoritmos')
 sys.path.append(os.getcwd())
-# sys.stdout = sys.__stdout__
+sys.stdout = sys.__stdout__
 
 def reload_modules(exclude=("main",)):
     """

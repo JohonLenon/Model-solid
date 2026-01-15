@@ -151,7 +151,7 @@ def create_surfaces_armour(model, nome_instancia, lado):
         model.rootAssembly.Surface(side1Faces=faces_superiores, name=f'Surf-{nome_instancia}-2')
 
 def create_contact_surfaces(model, nome_contato = "GeneralContact"):
-    print("====================== Contato =========================")
+    print("====================== Contato =========================\n")
     assembly = model.rootAssembly
     contatos = {
         "ContatoTension": True,
@@ -199,12 +199,11 @@ def create_contact_surfaces(model, nome_contato = "GeneralContact"):
                     assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-1"],"Contact_Initialization"))
             else:
                 assignments.append((assembly.surfaces[camada_1], assembly.surfaces[camada_2], "Contact_Initialization"))
-        except Exception as e:
-            print(f"{e.__class__.__name__}: {str(e)}.\n")
+        except Exception as e:            print(f"{e.__class__.__name__}: {str(e)}.\t Camadas: {camada_1} e {camada_2}.\n")
+        print(f"Contato entre {camada_1} e {camada_2} criado.\n")
     model.interactions[nome_contato].initializationAssignments.appendInStep(stepName='Initial', assignments=tuple(assignments))
 
 def create_general(model, step='Initial'):
-    print("====================== Contato =========================")
     contatos = {
         "ContatoTension": True,
         "ContatoShell": False
