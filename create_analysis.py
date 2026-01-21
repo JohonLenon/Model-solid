@@ -3,7 +3,7 @@
 from abaqus import mdb
 from abaqusConstants import * # type: ignore
 from create_region import create_region
-from set_dados_gerais import names
+from set_dados_gerais import names, layers
 
 def create_analysis(model, passo):
     assembly = model.rootAssembly
@@ -15,6 +15,10 @@ def create_analysis(model, passo):
 
     model.ExplicitDynamicsStep(
     name= names['Step2'], previous=names['Step1'], timePeriod=periodoAnalise, 
+    timeIncrementationMethod=AUTOMATIC_GLOBAL)
+
+    model.ExplicitDynamicsStep(
+    name= names['Step3'], previous=names['Step2'], timePeriod=periodoAnalise, 
     timeIncrementationMethod=AUTOMATIC_GLOBAL)
 
     endA = create_region(model, 0)
@@ -38,25 +42,14 @@ def create_analysis(model, passo):
     model.Coupling(name='CouplingEndA', surface=endA, controlPoint=regiao_refEndA, u1 = OFF, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC, localCsys=assembly.datums[k[0]])
     model.Coupling(name='CouplingEndB', surface=endB, controlPoint=regiao_refEndB, u1 = OFF, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC, localCsys=assembly.datums[k[0]])
 
-    # model.HistoryOutputRequest(
-    # name='H-Output-EndA',
-    # createStepName=names['Step'],
-    # variables=('RF', 'UR', 'RM'),
-    # timeInterval=0.0005,
-    # region=assembly.sets['Regiao-RPEndA'])
-
-    # model.HistoryOutputRequest(
-    # name='H-Output-EndB',
-    # createStepName=names['Step'],
-    # variables=('RF', 'UR', 'RM'),
-    # timeInterval=0.0005,
-    # region=assembly.sets['Regiao-RPEndB'])
-
     model.FieldOutputRequest(name='F-Output-1',createStepName=names['Step1'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
     model.fieldOutputRequests['F-Output-1'].setValues(numIntervals=10,)
 
     model.FieldOutputRequest(name='F-Output-2',createStepName=names['Step2'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
-    model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=1000,)
+    model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=10,)
+
+    model.FieldOutputRequest(name='F-Output-3',createStepName=names['Step3'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
+    model.fieldOutputRequests['F-Output-3'].setValues(numIntervals=1000,)
 
     model.DisplacementBC(name="endA", createStepName= names['Step1'], region=regiao_refEndA, u1=UNSET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET,
     ur3=UNSET, amplitude=UNSET)
@@ -70,6 +63,9 @@ def create_analysis(model, passo):
     ur3=SET, amplitude=UNSET)
     model.DisplacementBC(name="endB_Bending", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET,
     ur3=passo/1000, amplitude='Amplitude')
+
+    external_surface = [y for (x,y) in list(assembly.surfaces.items()) if next(reversed(layers.keys())) in x][0]
+    model.Pressure(name="Pressure", createStepName = names['Step2'], region=external_surface, magnitude=2, amplitude='Amplitude')
 
     job_name = 'Job-Explicit'
     mdb.Job(

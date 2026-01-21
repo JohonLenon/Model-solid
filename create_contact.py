@@ -5,6 +5,7 @@ from abaqusConstants import * # type: ignore
 from set_dados_gerais import layers, obter_chave_ordenacao, names
 from set_camadas import cilindros_ortotropicos
 from numpy import sqrt
+from create_analysis import create_analysis
 
 def contact_props(model, nome_contato, tension = False):
     contact_prop = model.ContactProperty(nome_contato)
@@ -14,13 +15,17 @@ def contact_props(model, nome_contato, tension = False):
     )
     if tension:
         contact_prop.TangentialBehavior(
-            formulation=FRICTIONLESS,
-            directionality=ISOTROPIC,
-            table=((0.1, ), ),
-            elasticSlipStiffness=None,
-            fraction=1,
-            maximumElasticSlip=FRACTION
-        )
+        formulation=PENALTY,
+        directionality=ISOTROPIC,
+        slipRateDependency=OFF,
+        pressureDependency=OFF,
+        temperatureDependency=OFF,
+        dependencies=0,
+        table=((0.1,),),
+        shearStressLimit=None,
+        maximumElasticSlip=FRACTION,
+        fraction=0.005,
+        elasticSlipStiffness=None)
     else:
         contact_prop.TangentialBehavior(
             formulation=FRICTIONLESS
@@ -199,11 +204,12 @@ def create_contact_surfaces(model, nome_contato = "GeneralContact"):
                     assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-1"],"Contact_Initialization"))
             else:
                 assignments.append((assembly.surfaces[camada_1], assembly.surfaces[camada_2], "Contact_Initialization"))
-        except Exception as e:            print(f"{e.__class__.__name__}: {str(e)}.\t Camadas: {camada_1} e {camada_2}.\n")
+        except Exception as e:
+            print(f"{e.__class__.__name__}: {str(e)}.\t Camadas: {camada_1} e {camada_2}.\n")
         print(f"Contato entre {camada_1} e {camada_2} criado.\n")
     model.interactions[nome_contato].initializationAssignments.appendInStep(stepName='Initial', assignments=tuple(assignments))
 
-def create_general(model, step='Initial'):
+def create_general(model, passo, step='Initial'):
     contatos = {
         "ContatoTension": True,
         "ContatoShell": False
@@ -211,9 +217,9 @@ def create_general(model, step='Initial'):
     nome_contato = 'GeneralContact'
     for item, values in contatos.items():
         contact_props(model, item, values)
-    model.ContactExp(name=nome_contato, createStepName=step, contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[0]),))
+    model.ContactExp(name=nome_contato, createStepName=step, contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[1]),))
     model.ExpInitialization(name='Contact_Initialization', overclosureType=INTERFERENCE)
     create_contact_surfaces(model)
+    create_analysis(model, passo)
     model.interactions[nome_contato].deactivate(names['Step2'])
     model.ContactExp(name=nome_contato+"-2", createStepName=names['Step2'], contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[0]),))
-    # model.interactions[nome_contato].setValues(globalSmoothing=True)

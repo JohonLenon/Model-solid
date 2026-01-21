@@ -391,47 +391,26 @@ class carcaca:
         self.revolve_direction = revolve_direction
     def create_geometry(self, model):
         # Gera geometria
-        # importdxf(fileName=r'IC_Witz_1996_revolution_solid.dxf')
-        sk = model.sketches['IC_Witz_1996_revolution_solid']
         self.pitch = pitch(self.mid_diameter/2-self.thickness/2, self.lay_angle)
         print("========================================================")
-        s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
-        points = [(1.75, 0.35), (-1.05, 0.35), (-1.05, 6.8), (-0.35, 6.8), (-0.35, 3.45), (0.35, 3.45), (0.35, 7.5), (-1.75, 7.5), (-1.75, -0.35), (1.05, -0.35), (1.05, -6.8), (-0.35, -6.8), (-0.35, -3.45), (-1.05, -3.45), (-1.05, -7.5), (1.75, -7.5), (1.75, 0.35)]
+        s = model.ConstrainedSketch(name='carcaca', sheetSize=200.0)
+        # points = [(1.75, 0.35), (-1.05, 0.35), (-1.05, 6.8), (-0.35, 6.8), (-0.35, 3.45), (0.35, 3.45), (0.35, 7.5), (-1.75, 7.5), (-1.75, -0.35), (1.05, -0.35), (1.05, -6.8), (-0.35, -6.8), (-0.35, -3.45), (-1.05, -3.45), (-1.05, -7.5), (1.75, -7.5), (1.75, 0.35)]
+
+        points = [(0.95, 7.5), (0.95, 5.45), (0.25, 5.45), (0.25, 6.8), (-1.05, 6.8), (-1.05, 0.35), (1.75, 0.35), (1.75, -7.5), (-0.95, -7.5), (-0.95, -5.45), (-0.25, -5.45), (-0.25, -6.8), (1.05, -6.8), (1.05, -0.35), (-1.75, -0.35), (-1.75, 7.5), (0.95, 7.5)]
 
         for i in range(0, len(points)):
             r = self.mid_diameter/2
-            s.Line(point1=(points[i-1][0]+r, points[i-1][1]), point2=(points[i][0]+r, points[i][1]))
-        g = sk.geometry
-        sk.ConstructionLine(point1=(0.0, -10*self.pitch), point2=(0.0, 10*self.pitch))
+            s.Line(point1=(points[i-1][0]+r, points[i-1][1]+7.5), point2=(points[i][0]+r, points[i][1]+7.5))
+        g = s.geometry
+        s.ConstructionLine(point1=(0.0, -10*self.pitch), point2=(0.0, 10*self.pitch))
         part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
         p = model.parts[self.name]
-        factor = 1
 
-        p.BaseSolidRevolve(sketch=sk, angle=factor*self.length/self.pitch*360.0, flipRevolveDirection=self.revolve_direction, pitch=self.pitch, flipPitchDirection = OFF, moveSketchNormalToPath=ON)
+        p.BaseSolidRevolve(sketch=s, angle=(self.length/self.pitch)*360.0, flipRevolveDirection=self.revolve_direction, pitch=self.pitch, flipPitchDirection = OFF, moveSketchNormalToPath=ON)
         p.setValues(geometryRefinement=EXTRA_FINE)
-        for k in g.keys():
-            s.delete((g[k],))
+        # for k in g.keys():
+        #     s.delete((g[k],))
         
-        # Apaga o excesso da armadura de tração
-        # planes = [(factor-1)/2, (factor+1)/2]
-        # extrude_dir = [ON, OFF]
-        # for i, (plan, dir) in enumerate(list(zip(planes, extrude_dir))):
-        #     p.DatumPlaneByPrincipalPlane(principalPlane=XZPLANE, offset = -plan*self.length)
-        #     datums = p.datums.values()
-        #     ns = model.ConstrainedSketch(gridSpacing=63.45, name='novo_sketch', 
-        #     sheetSize=2600, transform=p.MakeSketchTransform(sketchPlane=datums[i+1], 
-        #     sketchPlaneSide=SIDE1, sketchUpEdge=p.edges[8], sketchOrientation=RIGHT,
-        #     origin=(0.0, self.length, 0.0)))
-        #     ns.rectangle(point1=(-200, 200), point2=(200, -200))
-            
-        #     p.CutExtrude(
-        #         flipExtrudeDirection=dir, 
-        #         sketch=ns, 
-        #         sketchOrientation=RIGHT, 
-        #         sketchPlane=datums[i+1], 
-        #         sketchPlaneSide=SIDE1, 
-        #         sketchUpEdge=p.edges[8])
-        #     del ns
         print(f"Geometria {self.name} criada. \n")
 
         # Gera malha
@@ -458,8 +437,8 @@ class carcaca:
         assembly = model.rootAssembly
         instance_name = f'{self.name}-1'
         assembly.Instance(name=instance_name, part=part, dependent=ON)
-        assembly.translate(instanceList=(instance_name,), vector=(0,self.length,0))
-        # num_instances = self.number_strips
+        # assembly.translate(instanceList=(instance_name,), vector=(0,self.length,0))
+        # num_instances = 2
         # angle_step = 360.0 / num_instances
 
         # for j in range(0, num_instances):
@@ -467,12 +446,12 @@ class carcaca:
         #     instance_rotated_name = f'{self.name}-{j+1}'
         #     assembly.Instance(name=instance_rotated_name, part=part, dependent=ON)
         #     assembly.rotate(instanceList=(instance_rotated_name,), axisPoint=(0, 0, 0), axisDirection=(0, 1, 0), angle=rotation_angle)
-        #     assembly.translate(instanceList=(instance_rotated_name,), vector=(0,(factor+1)/2*self.length,0))
+        #     assembly.translate(instanceList=(instance_rotated_name,), vector=(0,(factor+1)/2*self.length, 0))
         
-        for k in g.keys():
-            s.delete((g[k],))
+        # for k in g.keys():
+        #     s.delete((g[k],))
 
-        # # assembly.suppressFeatures((instance_name,))
+        # assembly.suppressFeatures((instance_name,))
         print(f"Assembly {self.name} criado. \n")
 
 class pressure_armour:
