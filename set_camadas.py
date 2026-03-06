@@ -1,7 +1,6 @@
 from caeModules import mesh
 from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos, tan, radians, sign, array, diag
-import sympy as sp
 
 discretizacao = 6
 
