@@ -48,8 +48,11 @@ for name, layer in layers.items():
     if layer["type"] == tension_armour:
         layer["pitch"] = pitch(layer['mid_diameter']/2, layer['lay_angle'])
         layer["length"] = layer['pitch']
-passo = min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
-layers[max((name for name, layer in layers.items() if layer["type"] == tension_armour), key=lambda n: layers[n]["pitch"])]['length']=passo
+passo = 2*max((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
+for name, layer in layers.items():
+    if layer["type"] == tension_armour:
+        layer["length"] = passo
+# layers[min((name for name, layer in layers.items() if layer["type"] == tension_armour), key=lambda n: layers[n]["pitch"])]['length']=passo
 for name, layer in layers.items():
     if layer["type"] != tension_armour:
         layer["pitch"]=passo

@@ -6,8 +6,8 @@ from set_camadas import cilindros, cilindros_ortotropicos, cilindros_solidos, te
 names = {
     "Model": "ModeloRiser",
     "Step1": "Step_Settling",
-    "Step2": "Step_Pressure",
-    "Step3": "Step_Explicit",
+    # "Step2": "Step_Pressure",
+    "Step2": "Step_Explicit",
 }
 
 layers = {
@@ -19,11 +19,11 @@ layers = {
 
     "InnerAntiFrictionTape": {"type": cilindros_solidos, "name": "InnerAntiFrictionTape", "pitch": None, "mid_diameter": 94, "thickness": 1.5, "name_material": "Rilsan", "young_modulus": 301,"poisson": 0.4,"density": 0.97*10**(-9),"plastic_table": None},
 
-    "InnerArmour": {"type": tension_armour, "name": "InnerArmour", "pitch": None, "lay_angle": 35, "number_strips": 40, "mid_diameter": 95.5, "height":6, "width": 3, "points": 1000, "name_material": "FI41", "young_modulus": 211000, "poisson": 0.3, "density": 7.85*10**(-9), "revolve_direction": OFF, "plastic_table": None, "length": 0},
+    "InnerArmour": {"type": tension_armour, "name": "InnerArmour", "pitch": None, "lay_angle": 35, "number_strips": 40, "mid_diameter": 98.5, "height":6, "width": 3, "points": 1000, "name_material": "FI41", "young_modulus": 211000, "poisson": 0.3, "density": 7.85*10**(-9), "revolve_direction": OFF, "plastic_table": None, "length": 0},
 
     "OuterAntiFrictionTape": {"type": cilindros_solidos, "name": "OuterAntiFrictionTape", "pitch": None, "mid_diameter": 103, "thickness": 1.5, "name_material": "Rilsan", "young_modulus": 301,"poisson": 0.4,"density": 0.97*10**(-9),"plastic_table": None},
 
-    "OuterArmour": {"type": tension_armour, "name": "OuterArmour", "pitch": None, "lay_angle": 35, "number_strips": 44, "mid_diameter": 104.5, "height":6, "width": 3, "points": 1000, "name_material": "FI41", "young_modulus": 211000, "poisson": 0.3, "density": 7.85*10**(-9), "revolve_direction": ON, "plastic_table": None, "length": 0},
+    "OuterArmour": {"type": tension_armour, "name": "OuterArmour", "pitch": None, "lay_angle": 35, "number_strips": 44, "mid_diameter": 107.5, "height":6, "width": 3, "points": 1000, "name_material": "FI41", "young_modulus": 211000, "poisson": 0.3, "density": 7.85*10**(-9), "revolve_direction": ON, "plastic_table": None, "length": 0},
 
     "FabricTape": {"type": cilindros_solidos, "name": "FabricTape", "pitch": None, "mid_diameter": 111, "thickness": 0.5, "name_material": "HDPE", "young_modulus": 600,"poisson": 0.45,"density": 0.97*10**(-9),"plastic_table": None}
 }

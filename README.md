@@ -1,4 +1,6 @@
-Versão 2025-01-15: Criação de armadura de pressão 3D.
+Versão 2026-03-06: Alteração do método da espessura equivalente para o método do laminado equivalente.
+
+Versão 2026-01-15: Criação de armadura de pressão 3D.
 
 Versão 2025-12-15: Ajustes de penetrações iniciais no contato.
 

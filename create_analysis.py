@@ -17,10 +17,6 @@ def create_analysis(model, passo):
     name= names['Step2'], previous=names['Step1'], timePeriod=periodoAnalise, 
     timeIncrementationMethod=AUTOMATIC_GLOBAL)
 
-    model.ExplicitDynamicsStep(
-    name= names['Step3'], previous=names['Step2'], timePeriod=periodoAnalise, 
-    timeIncrementationMethod=AUTOMATIC_GLOBAL)
-
     endA = create_region(model, 0)
     endB = create_region(model, passo)
 
@@ -46,10 +42,7 @@ def create_analysis(model, passo):
     model.fieldOutputRequests['F-Output-1'].setValues(numIntervals=10,)
 
     model.FieldOutputRequest(name='F-Output-2',createStepName=names['Step2'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
-    model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=10,)
-
-    model.FieldOutputRequest(name='F-Output-3',createStepName=names['Step3'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
-    model.fieldOutputRequests['F-Output-3'].setValues(numIntervals=1000,)
+    model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=1000,)
 
     model.DisplacementBC(name="endA", createStepName= names['Step1'], region=regiao_refEndA, u1=UNSET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET,
     ur3=UNSET, amplitude=UNSET)
@@ -61,11 +54,23 @@ def create_analysis(model, passo):
 
     model.DisplacementBC(name="endA_Bending", createStepName= names['Step2'], region=regiao_refEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET,
     ur3=SET, amplitude=UNSET)
-    model.DisplacementBC(name="endB_Bending", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET,
-    ur3=passo/1000, amplitude='Amplitude')
+    # model.DisplacementBC(name="endB_Bending", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET,
+    # ur3=passo/1000, amplitude='Amplitude')    
+    model.DisplacementBC(name="endB_Bending", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=0.06*passo, u3=UNSET, ur1=UNSET, ur2=UNSET,
+    ur3=UNSET, amplitude='Amplitude')
 
-    external_surface = [y for (x,y) in list(assembly.surfaces.items()) if next(reversed(layers.keys())) in x][0]
-    model.Pressure(name="Pressure", createStepName = names['Step2'], region=external_surface, magnitude=2, amplitude='Amplitude')
+    if "Step3" in names:
+        model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=10,)
+        
+        model.ExplicitDynamicsStep(name= names['Step3'], previous=names['Step2'], timePeriod=periodoAnalise, timeIncrementationMethod=AUTOMATIC_GLOBAL)
+
+        model.FieldOutputRequest(name='F-Output-3',createStepName=names['Step3'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
+        
+        model.fieldOutputRequests['F-Output-3'].setValues(numIntervals=1000,)
+        model.boundaryConditions["endB_Bending"].move(fromStepName=names["Step2"], toStepName=names["Step3"])
+        
+        external_surface = [y for (x,y) in list(assembly.surfaces.items()) if next(reversed(layers.keys())) in x][0]
+        model.Pressure(name="Pressure", createStepName = names['Step2'], region=external_surface, magnitude=2, amplitude='Amplitude')
 
     job_name = 'Job-Explicit'
     mdb.Job(
@@ -74,7 +79,7 @@ def create_analysis(model, passo):
         type=ANALYSIS,
         explicitPrecision=DOUBLE,
         nodalOutputPrecision=SINGLE,
-        numCpus=8,
-        numDomains=8,
+        numCpus=12,
+        numDomains=12,
         multiprocessingMode=DEFAULT
     )
