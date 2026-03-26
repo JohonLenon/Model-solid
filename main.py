@@ -1,6 +1,6 @@
 import os
 import sys
-from abaqus import mdb, session, highlight
+from abaqus import mdb, session
 from abaqusConstants import * # type: ignore
 import importlib
 from pathlib import Path
@@ -33,7 +33,7 @@ reload_modules()
 
 from set_dados_gerais import names, layers
 from set_camadas import tension_armour, pitch
-from create_contact import create_contact, create_general
+from create_contact import create_general
 
 nome_modelo = names["Model"]
 mdb.Model(name='Model-1')
@@ -48,7 +48,7 @@ for name, layer in layers.items():
     if layer["type"] == tension_armour:
         layer["pitch"] = pitch(layer['mid_diameter']/2, layer['lay_angle'])
         layer["length"] = layer['pitch']
-passo = 2*max((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
+passo = 2*min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
 for name, layer in layers.items():
     if layer["type"] == tension_armour:
         layer["length"] = passo
@@ -63,7 +63,6 @@ for name, layer in layers.items():
     obj = type(**kwargs)
     obj.create_geometry(model)
 
-# create_contact(model)
 create_general(model, passo)
 session.viewports['Viewport: 1'].assemblyDisplay.geometryOptions.setValues(
 datumAxes=OFF, datumPlanes=OFF)

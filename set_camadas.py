@@ -2,7 +2,9 @@ from caeModules import mesh
 from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos, tan, radians, sign, array, diag
 
-discretizacao = 6
+numero_elementos = 30
+discretizacao_tension_armour = 6
+
 
 def pitch(R, angle, number_pitches=1):
     p = number_pitches*2*pi*R/tan(radians(angle))
@@ -32,7 +34,7 @@ class cilindros:
         print(f"Geometria {self.name} criada. \n")
 
         # Cria malha
-        part.seedPart(size=discretizacao)
+        part.seedPart(size=numero_elementos)
         part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")
@@ -91,9 +93,12 @@ class cilindros_ortotropicos:
         print(f"Geometria {self.name} criada. \n")
 
         # Cria malha
-        part.seedPart(size=discretizacao)
+        # part.seedPart(size=discretizacao)
+        part.seedEdgeByNumber(edges=part.edges, number=numero_elementos)
+        part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
+        part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
         part.setMeshControls(regions=part.cells, algorithm=MEDIAL_AXIS)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT),))
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
@@ -147,7 +152,7 @@ class cilindros_ortotropicos:
 
         # Cria seção e associa material
         region = part.Set(faces=part.faces, name=f'Set-{self.name}')
-        part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+        part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_GEOMETRY)
         part.MaterialOrientation(
             region           = region,
             orientationType  = SYSTEM,
@@ -158,6 +163,7 @@ class cilindros_ortotropicos:
             fieldName        = '',
             additionalRotationType = ROTATION_NONE,
         )
+        part.assignThickness(faces=part.faces, thickness=self.thickness)
 
         # Cria assembly e posiciona
         assembly = model.rootAssembly
@@ -169,7 +175,7 @@ class cilindros_ortotropicos:
         print(f"Assembly {self.name} criado. \n")
 
 class cilindros_solidos:
-    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, plastic_table = None):
+    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, plastic_table = None, **kwargs):
         self.name = name
         self.pitch = pitch
         self.mid_diameter = mid_diameter
@@ -194,9 +200,12 @@ class cilindros_solidos:
         print(f"Geometria {self.name} criada. \n")
 
         # Cria malha
-        part.seedPart(size=discretizacao)
+        # part.seedPart(size=discretizacao)
+        part.seedEdgeByNumber(edges=part.edges, number=numero_elementos)
+        part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
+        part.PartitionCellByDatumPlane(cells=part.cells, datumPlane=part.datums[3])
         part.setMeshControls(regions=part.cells, algorithm=MEDIAL_AXIS)
-        part.setElementType(regions=((part.cells,)), elemTypes=(mesh.ElemType(elemCode=C3D8R),))
+        part.setElementType(regions=((part.cells,)), elemTypes=(mesh.ElemType(elemCode=C3D8R,hourglassControl=ENHANCED),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
@@ -342,8 +351,8 @@ class tension_armour:
             print(f"Geometria {self.name} criada. \n")
 
             # Gera malha
-            p.seedPart(size=discretizacao/2)
-            p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R),))
+            p.seedPart(size=discretizacao_tension_armour)
+            p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R, hourglassControl=ENHANCED),))
             p.generateMesh()
             print(f"Malha {self.name} criada. \n")
 
@@ -423,7 +432,7 @@ class carcaca:
         print(f"Geometria {self.name} criada. \n")
 
         # Gera malha
-        p.seedPart(size=discretizacao)
+        p.seedPart(size=numero_elementos)
         p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R),))
         p.generateMesh()
         print(f"Malha {self.name} criada. \n")
@@ -502,7 +511,7 @@ class pressure_armour:
         print(f"Geometria {self.name} criada. \n")
 
         # Gera malha
-        p.seedPart(size=discretizacao)
+        p.seedPart(size=numero_elementos)
         p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R),))
         p.generateMesh()
         print(f"Malha {self.name} criada. \n")

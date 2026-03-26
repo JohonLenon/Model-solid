@@ -1,7 +1,7 @@
 """Nessa função são definidos todos os dados gerais do modelo."""
 
 from abaqusConstants import ON, OFF
-from set_camadas import cilindros, cilindros_ortotropicos, cilindros_solidos, tension_armour, carcaca, pressure_armour
+from set_camadas import cilindros_ortotropicos, cilindros_solidos, tension_armour
 
 names = {
     "Model": "ModeloRiser",
