@@ -4,6 +4,8 @@ from abaqus import mdb, session
 from abaqusConstants import * # type: ignore
 import importlib
 from pathlib import Path
+import math
+from numpy import tan, radians
 
 os.chdir(r'C:\Users\Johon\Desktop\Arquivos Importantes\Pessoal\Dissertação\Algoritmos')
 sys.path.append(os.getcwd())
@@ -49,6 +51,7 @@ for name, layer in layers.items():
         layer["pitch"] = pitch(layer['mid_diameter']/2, layer['lay_angle'])
         layer["length"] = layer['pitch']
 passo = 2*min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
+passo = min(math.ceil(passo/(layer['base']/tan(radians(layer['lay_angle']))))*(layer['base']/tan(radians(layer['lay_angle']))) for layer in layers.values() if layer["type"] == tension_armour)
 for name, layer in layers.items():
     if layer["type"] == tension_armour:
         layer["length"] = passo

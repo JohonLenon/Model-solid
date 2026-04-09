@@ -7,79 +7,40 @@ from set_dados_gerais import names, layers
 
 def create_analysis(model, passo):
     assembly = model.rootAssembly
-    periodoAnalise = 1
-
-    model.ExplicitDynamicsStep(
-    name= names['Step1'], previous='Initial', timePeriod=periodoAnalise/100, 
-    timeIncrementationMethod=AUTOMATIC_GLOBAL)
-
-    model.ExplicitDynamicsStep(
-    name= names['Step2'], previous=names['Step1'], timePeriod=periodoAnalise, 
-    timeIncrementationMethod=AUTOMATIC_GLOBAL)
+    periodoAnalise = 1.5
 
     endA = create_set_geral(model, 0)
     endB = create_set_geral(model, passo)
-
-    # endA_por_camada = create_set_por_camada(model, 0)
-    # endB_por_camada = create_set_por_camada(model, passo)
-
-    model.SmoothStepAmplitude(name='Amplitude', data=((0,0),(1,1/periodoAnalise),))
-
     assembly.ReferencePoint(point=(0,0,0))
     assembly.ReferencePoint(point=(0,passo,0))
-
-    assembly.DatumCsysByThreePoints(name="Cilindrico", coordSysType= CYLINDRICAL, origin=(0,0,0), point1=(1,0,0), point2=(0,0,1))
-
     refEndA = assembly.referencePoints[assembly.referencePoints.keys()[-1]]
     regiao_refEndA = assembly.Set(referencePoints=(refEndA,), name='Regiao-RPEndA')
-
     refEndB = assembly.referencePoints[assembly.referencePoints.keys()[-2]]
     regiao_refEndB = assembly.Set(referencePoints=(refEndB,), name='Regiao-RPEndB')
-
-    regiao_surfInterna = assembly.Set(faces=assembly.instances[next(iter(layers))].faces, name="Regiao-SurfInterna")
-    regiao_surfExterna = assembly.Set(faces=assembly.instances[next(iter(reversed(layers)))].faces, name="Regiao-SurfExterna")
-
-    k = [k for k, v in assembly.datums.items() if v.__class__.__name__ == 'DatumCsys']
-
-    model.Coupling(name='CouplingEndA', surface=endA, controlPoint=regiao_refEndA, u1 = OFF, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC, localCsys=assembly.datums[k[0]])
-    model.Coupling(name='CouplingEndB', surface=endB, controlPoint=regiao_refEndB, u1 = OFF, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC, localCsys=assembly.datums[k[0]])
-
-    model.FieldOutputRequest(name='F-Output-1',createStepName=names['Step1'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
-    model.fieldOutputRequests['F-Output-1'].setValues(numIntervals=10,)
-
-    model.FieldOutputRequest(name='F-Output-2',createStepName=names['Step2'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
-    model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=1000,)
-
-    # model.DisplacementBC(name="endA", createStepName= names['Step1'], region=regiao_refEndA, u1=UNSET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET)
-    # model.DisplacementBC(name="endB", createStepName= names['Step1'], region=regiao_refEndB, u1=UNSET, u2=SET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET)
+    model.Coupling(name='CouplingEndA', surface=endA, controlPoint=regiao_refEndA, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC)
+    model.Coupling(name='CouplingEndB', surface=endB, controlPoint=regiao_refEndB, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC)
     
-    model.DisplacementBC(name="SurfInterna", createStepName= names['Step1'], region=regiao_surfInterna, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, amplitude=UNSET)
-    model.DisplacementBC(name="SurfExterna", createStepName= names['Step1'], region=regiao_surfExterna, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, amplitude=UNSET)
-    model.boundaryConditions['SurfInterna'].deactivate(names['Step2'])
-    model.boundaryConditions['SurfExterna'].deactivate(names['Step2'])
+    model.SmoothStepAmplitude(name='Amplitude', data=((0,0),(periodoAnalise,1),))
 
-    # model.boundaryConditions['endA'].deactivate(names['Step2'])
-    # model.boundaryConditions['endB'].deactivate(names['Step2'])
-
-    model.DisplacementBC(name="endA_Bending", createStepName= names['Step2'], region=regiao_refEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET,
-    ur3=SET, amplitude=UNSET)
-    model.DisplacementBC(name="endB_Bending", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET,
-    ur3=passo/1000, amplitude='Amplitude')    
-    # model.DisplacementBC(name="endB_Tension", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=0.06*passo, u3=UNSET, ur1=UNSET, ur2=UNSET,
-    # ur3=UNSET, amplitude='Amplitude')
-
-    if "Step3" in names:
-        model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=10,)
-        
-        model.ExplicitDynamicsStep(name= names['Step3'], previous=names['Step2'], timePeriod=periodoAnalise, timeIncrementationMethod=AUTOMATIC_GLOBAL)
-
-        model.FieldOutputRequest(name='F-Output-3',createStepName=names['Step3'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS'))
-        
-        model.fieldOutputRequests['F-Output-3'].setValues(numIntervals=1000,)
-        model.boundaryConditions["endB_Bending"].move(fromStepName=names["Step2"], toStepName=names["Step3"])
-        
+    try:
+        model.ExplicitDynamicsStep(name= names['Step1'], previous='Initial', timePeriod=periodoAnalise/3, timeIncrementationMethod=AUTOMATIC_GLOBAL)
+        model.FieldOutputRequest(name='F-Output-1',createStepName=names['Step1'],variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
+        model.fieldOutputRequests['F-Output-1'].setValues(numIntervals=10,)
         external_surface = [y for (x,y) in list(assembly.surfaces.items()) if next(reversed(layers.keys())) in x][0]
-        model.Pressure(name="Pressure", createStepName = names['Step2'], region=external_surface, magnitude=2, amplitude='Amplitude')
+        model.SmoothStepAmplitude(name='Amplitude_pressure', data=((0,0),(periodoAnalise/3,1),))
+        model.Pressure(name="Pressure", createStepName = names['Step1'], region=external_surface, magnitude=2, amplitude='Amplitude_pressure')
+        step_anterior = names['Step1']
+    except:
+        print("==\tModelo sem step de pressão externa\t==")
+        step_anterior = "Initial"
+
+    model.ExplicitDynamicsStep(name= names['Step2'], previous=step_anterior, timePeriod=periodoAnalise, timeIncrementationMethod=AUTOMATIC_GLOBAL)
+    model.FieldOutputRequest(name='F-Output-2', createStepName=names['Step2'], variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
+    model.HistoryOutputRequest(name='H-Output-1', createStepName=names['Step2'], variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
+    model.fieldOutputRequests['F-Output-2'].setValues(numIntervals=400,)
+    model.DisplacementBC(name="endA_Bending", createStepName= step_anterior, region=regiao_refEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, amplitude=UNSET)
+    model.DisplacementBC(name="endB_Bending", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=passo/1000, amplitude='Amplitude')
+    # model.DisplacementBC(name="endB_Tension", createStepName= names['Step2'], region=regiao_refEndB, u1=UNSET, u2=0.006*passo, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude='Amplitude')
 
     job_name = 'Job-Explicit'
     mdb.Job(

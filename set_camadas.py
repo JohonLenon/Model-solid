@@ -2,16 +2,16 @@ from caeModules import mesh
 from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos, tan, radians, sign, array, diag
 
-numero_elementos = 30
-discretizacao_tension_armour = 6
+numero_elementos = 44
+discretizacao_tension_armour = 9
 
 
 def pitch(R, angle, number_pitches=1):
     p = number_pitches*2*pi*R/tan(radians(angle))
     return p
 
-class cilindros:
-    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, plastic_table = None):
+class cilindros_shell:
+    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, plastic_table = None, **kwargs):
         self.name = name
         self.pitch = pitch
         self.mid_diameter = mid_diameter
@@ -25,17 +25,20 @@ class cilindros:
     def create_geometry(self, model):
         # Cria geometria
         print("========================================================")
-        s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
-        s.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius))
+        sk = model.ConstrainedSketch(name='rect', sheetSize=200.0)
+        sk.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius))
         part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-        # part = model.parts[self.name]
-        part.BaseShellExtrude(sketch=s, depth= self.pitch)
+        part.BaseShellExtrude(sketch=sk, depth= self.pitch)
         part.setValues(geometryRefinement=EXTRA_FINE)
         print(f"Geometria {self.name} criada. \n")
 
         # Cria malha
-        part.seedPart(size=numero_elementos)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R),))
+        part.seedEdgeByNumber(edges=part.edges, number=numero_elementos)
+        part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
+        part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
+        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/(6/sin(radians(35)))))
+        part.setMeshControls(regions=part.cells, algorithm=MEDIAL_AXIS)
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")
 
@@ -59,9 +62,9 @@ class cilindros:
         assembly = model.rootAssembly
         assembly.Instance(name=self.name, part=part, dependent=ON)
         assembly.rotate(instanceList=[self.name], axisPoint = (0,0,0), axisDirection =(1, 0, 0), angle = -90)
-        g = s.geometry
+        g = sk.geometry
         for k in g.keys():
-            s.delete((g[k],))
+            sk.delete((g[k],))
         print(f"Assembly {self.name} criado. \n")
 
 class cilindros_ortotropicos:
@@ -235,161 +238,118 @@ class cilindros_solidos:
         print(f"Assembly {self.name} criado. \n")
 
 class tension_armour:
-    def __init__(self, name, pitch, lay_angle, number_strips, mid_diameter, height, width, points, name_material, young_modulus, poisson, density, revolve_direction = ON, plastic_table = None, length = 0):
+    def __init__(self, name, pitch, lay_angle, n, mid_diameter, base, thickness, name_material, young_modulus, poisson, density, revolve_direction = ON, plastic_table = None, length = 0):
         self.name = name
         self.pitch = pitch
         self.length = length
         self.lay_angle = lay_angle
-        self.number_strips = number_strips
+        self.n = n
         self.mid_diameter = mid_diameter
         self.radius = mid_diameter/2
-        self.height = height
-        self.width = width
-        self.points = points
+        self.base = base
+        self.thickness = thickness
         self.name_material = name_material
         self.young_modulus = young_modulus
         self.poisson = poisson
         self.density = density
         self.plastic_table = plastic_table
         self.revolve_direction = revolve_direction
-    def create_geometry(self, model, element="solid"):
-        if element == "beam":
-            pontos = []
-            for i in range(self.points + 1):
-                position_ratio = i / self.points
-                t = 2 * pi * position_ratio * self.length / self.pitch * sign(self.lay_angle)
-                x = self.radius * cos(t)
-                z = self.radius * sin(t)
-                y = self.length * position_ratio
-                if y > self.length:
-                    break
-                pontos.append((x, y, z))
-
-            pontos = tuple(pontos)
-            part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-            p = model.parts[self.name]
-            p.WireSpline(points=pontos)
-
-            print(f"Geometria {self.name} criada.\n")
-
-            # Define a orientação da viga
-            region = p.Set(edges=p.edges, name=f'Set-{self.name}')
-            part.assignBeamSectionOrientation(region=region, method=N1_COSINES, n1=(0.0, 1.0, 0.0))
-            print(f"Orientação da viga {self.name} definida. \n")
-
-            # Gera malha
-            p.seedEdgeByNumber(edges=p.edges, number=self.points)
-            p.setElementType(regions=(p.edges,), elemTypes=(mesh.ElemType(elemCode=B31),))
-            p.generateMesh()
-            print(f"Malha {self.name} criada. \n")
-
-            try:
-                material = model.materials[self.name_material]
-            except:
-                material = model.Material(name=f'{self.name_material}')
-                material.Elastic(table=((self.young_modulus, self.poisson),))
-                material.Density(table=((self.density,),))
-
-                sigma_y = 650
-                Et = 1172.58
-                sigma_plastic = sigma_y + 10
-                epsilon_plastic = (sigma_plastic - sigma_y) / Et
-                material.Plastic(table=((sigma_y, 0.0), (sigma_plastic, epsilon_plastic)))
-
-                print(f"Material {material.name} criado.\n")
-
-            # Cria perfil, seção e associa material
-            model.RectangularProfile(name= self.name+'_Profile', a=self.width, b=self.height)
-            model.BeamSection(name= self.name+'_Section', integration=DURING_ANALYSIS, profile= self.name+'_Profile', material='METALLIC')
-            p.SectionAssignment(region=region, sectionName= self.name+'_Section', thicknessAssignment=FROM_SECTION)
-            print(f"Perfil, seção e materiais para {self.name} atribuídos. \n")
-
-            # Cria o assembly e as cópias
-            assembly = model.rootAssembly
-            instance_name = f'{self.name}-1'
-            assembly.Instance(name=instance_name, part=part, dependent=ON)
-            angle_step = 360.0 / self.number_strips
-            for i in range(1, self.number_strips):
-                rotation_angle = i * angle_step
-                instance_rotated_name = f'{self.name}-{i+1}'
-                assembly.Instance(name=instance_rotated_name, part=part, dependent=ON)
-                assembly.rotate(instanceList=(instance_rotated_name,), axisPoint=(0, 0, 0), axisDirection=(0, 1, 0), angle=rotation_angle)
-            print(f"Assembly {self.name} criado.\n")
-        elif element=="solid":
-            # Gera geometria
-            print("========================================================")
-            s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
-            s.rectangle(point1=(self.radius-self.width/2,0), point2=(self.radius+self.width/2, self.height/sin(radians(self.lay_angle))))
-            #/sin(radians(self.lay_angle))
-            g = s.geometry
-            s.ConstructionLine(point1=(0.0, -self.length), point2=(0.0, self.length))
-            part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-            p = model.parts[self.name]
-            factor = 1.1
-            p.BaseSolidRevolve(sketch=s, angle=factor*self.length/self.pitch*360.0, flipRevolveDirection=self.revolve_direction, pitch=self.pitch, flipPitchDirection = OFF, moveSketchNormalToPath=OFF)
-            p.setValues(geometryRefinement=EXTRA_FINE)
-            for k in g.keys():
-                s.delete((g[k],))
+    def create_geometry(self, model):
+        # Gera geometria
+        print("========================================================")
+        s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
+        s.rectangle(point1=(self.radius-self.thickness/2,0), point2=(self.radius+self.thickness/2, self.base/sin(radians(self.lay_angle))))
+        #/sin(radians(self.lay_angle))
+        g = s.geometry
+        s.ConstructionLine(point1=(0.0, -self.length), point2=(0.0, self.length))
+        part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
+        p = model.parts[self.name]
+        factor = 1.1
+        p.BaseSolidRevolve(sketch=s, angle=factor*self.length/self.pitch*360.0, flipRevolveDirection=self.revolve_direction, pitch=self.pitch, flipPitchDirection = OFF, moveSketchNormalToPath=OFF)
+        p.setValues(geometryRefinement=EXTRA_FINE)
+        for k in g.keys():
+            s.delete((g[k],))
+        
+        # Apaga o excesso da armadura de tração
+        planes = [(factor-1)/2, (factor+1)/2]
+        extrude_dir = [ON, OFF]
+        for i, (plan, dir) in enumerate(list(zip(planes, extrude_dir))):
+            p.DatumPlaneByPrincipalPlane(principalPlane=XZPLANE, offset = -plan*self.length)
+            datums = p.datums.values()
+            ns = model.ConstrainedSketch(gridSpacing=63.45, name='novo_sketch', sheetSize=2600, transform=p.MakeSketchTransform(sketchPlane=datums[i+1], sketchPlaneSide=SIDE1, sketchUpEdge=p.edges[6], sketchOrientation=RIGHT, origin=(0.0, self.length, 0.0)))
+            ns.rectangle(point1=(-200, 200), point2=(200, -200))
             
-            # Apaga o excesso da armadura de tração
-            planes = [(factor-1)/2, (factor+1)/2]
-            extrude_dir = [ON, OFF]
-            for i, (plan, dir) in enumerate(list(zip(planes, extrude_dir))):
-                p.DatumPlaneByPrincipalPlane(principalPlane=XZPLANE, offset = -plan*self.length)
-                datums = p.datums.values()
-                ns = model.ConstrainedSketch(gridSpacing=63.45, name='novo_sketch', sheetSize=2600, transform=p.MakeSketchTransform(sketchPlane=datums[i+1], sketchPlaneSide=SIDE1, sketchUpEdge=p.edges[6], sketchOrientation=RIGHT, origin=(0.0, self.length, 0.0)))
-                ns.rectangle(point1=(-200, 200), point2=(200, -200))
-                
-                p.CutExtrude(
-                    flipExtrudeDirection=dir, 
-                    sketch=ns, 
-                    sketchOrientation=RIGHT, 
-                    sketchPlane=datums[i+1], 
-                    sketchPlaneSide=SIDE1, 
-                    sketchUpEdge=p.edges[6])
-                del ns
-            print(f"Geometria {self.name} criada. \n")
+            p.CutExtrude(
+                flipExtrudeDirection=dir, 
+                sketch=ns, 
+                sketchOrientation=RIGHT, 
+                sketchPlane=datums[i+1], 
+                sketchPlaneSide=SIDE1, 
+                sketchUpEdge=p.edges[6])
+            del ns
+        
+        # Ajusta a partição automática do Abaqus para possibilitar uma malha estruturada
+        comprimento_minimo = 50.0
+        sorted_edges = sorted(p.edges, key=lambda e: e.pointOn[0][1])
+        indices_edges_manter = set(
+            [p.edges.index(e) for e in sorted_edges[:4]] +
+            [p.edges.index(e) for e in sorted_edges[-4:]]
+        )
+        for i, e in enumerate(p.edges):
+            if e.getSize() >= comprimento_minimo:
+                indices_edges_manter.add(i)
+        edges_ignorar = [e for i, e in enumerate(p.edges) if i not in indices_edges_manter]
+        sorted_verts = sorted(p.vertices, key=lambda v: v.pointOn[0][1])
+        indices_verts_manter = set(
+            [p.vertices.index(v) for v in sorted_verts[:4]] +
+            [p.vertices.index(v) for v in sorted_verts[-4:]]
+        )
+        verts_ignorar = [v for i, v in enumerate(p.vertices) if i not in indices_verts_manter]
+        p.ignoreEntity(entities=(edges_ignorar,verts_ignorar))
 
-            # Gera malha
-            p.seedPart(size=discretizacao_tension_armour)
-            p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R, hourglassControl=ENHANCED),))
-            p.generateMesh()
-            print(f"Malha {self.name} criada. \n")
+        print(f"Geometria {self.name} criada. \n")
 
-            try:
-                material = model.materials[self.name_material]
-            except:
-                material = model.Material(name=f'{self.name_material}')
-                material.Elastic(table=((self.young_modulus, self.poisson),))
-                material.Density(table=((self.density,),))
+        # Gera malha
+        # p.seedPart(size=discretizacao_tension_armour)
+        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>50], number=int(self.length/(self.base/sin(radians(self.lay_angle)))))
+        p.setElementType(regions=(p.cells[0],), elemTypes=(mesh.ElemType(elemCode=C3D8R, hourglassControl=ENHANCED),))
+        p.generateMesh()
+        print(f"Malha {self.name} criada. \n")
 
-                print(f"Material {material.name} criado.\n")
+        try:
+            material = model.materials[self.name_material]
+        except:
+            material = model.Material(name=f'{self.name_material}')
+            material.Elastic(table=((self.young_modulus, self.poisson),))
+            material.Density(table=((self.density,),))
 
-            # Cria seção e associa material
-            model.HomogeneousSolidSection(name=f'Section_{self.name_material}', material=self.name_material, thickness=None)
-            region = p.Set(cells=p.cells, name=f'Set-{self.name}')
-            p.SectionAssignment(region=region, sectionName=f'Section_{self.name_material}', offset=0.0, offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+            print(f"Material {material.name} criado.\n")
 
-            # Cria o assembly e as cópias
-            assembly = model.rootAssembly
-            instance_name = f'{self.name}-1'
-            assembly.Instance(name=instance_name, part=part, dependent=ON)
-            assembly.translate(instanceList=(instance_name,), vector=(0,self.length,0))
-            num_instances = self.number_strips
-            angle_step = 360.0 / num_instances
+        # Cria seção e associa material
+        model.HomogeneousSolidSection(name=f'Section_{self.name_material}', material=self.name_material, thickness=None)
+        region = p.Set(cells=p.cells, name=f'Set-{self.name}')
+        p.SectionAssignment(region=region, sectionName=f'Section_{self.name_material}', offset=0.0, offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
 
-            for j in range(0, num_instances):
-                rotation_angle = j * angle_step
-                instance_rotated_name = f'{self.name}-{j+1}'
-                assembly.Instance(name=instance_rotated_name, part=part, dependent=ON)
-                assembly.rotate(instanceList=(instance_rotated_name,), axisPoint=(0, 0, 0), axisDirection=(0, 1, 0), angle=rotation_angle)
-                assembly.translate(instanceList=(instance_rotated_name,), vector=(0,(factor+1)/2*self.length,0))
-            
-            for k in g.keys():
-                s.delete((g[k],))
+        # Cria o assembly e as cópias
+        assembly = model.rootAssembly
+        instance_name = f'{self.name}-1'
+        assembly.Instance(name=instance_name, part=part, dependent=ON)
+        assembly.translate(instanceList=(instance_name,), vector=(0,self.length,0))
+        num_instances = self.n
+        angle_step = 360.0 / num_instances
 
-            # assembly.suppressFeatures((instance_name,))
-            print(f"Assembly {self.name} criado. \n")
+        for j in range(0, num_instances):
+            rotation_angle = j * angle_step
+            instance_rotated_name = f'{self.name}-{j+1}'
+            assembly.Instance(name=instance_rotated_name, part=part, dependent=ON)
+            assembly.rotate(instanceList=(instance_rotated_name,), axisPoint=(0, 0, 0), axisDirection=(0, 1, 0), angle=rotation_angle)
+            assembly.translate(instanceList=(instance_rotated_name,), vector=(0,(factor+1)/2*self.length,0))
+        
+        for k in g.keys():
+            s.delete((g[k],))
+
+        # assembly.suppressFeatures((instance_name,))
+        print(f"Assembly {self.name} criado. \n")
 
 class carcaca:
     def __init__(self, name, pitch, lay_angle, n, mid_diameter, thickness, name_material, young_modulus, poisson, density, revolve_direction = ON, plastic_table = None, length = 0, **kwargs):
