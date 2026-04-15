@@ -3,7 +3,7 @@ from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos, tan, radians, sign, array, diag
 
 numero_elementos = 44
-discretizacao_tension_armour = 9
+discretizacao_tension_armour = 6
 
 
 def pitch(R, angle, number_pitches=1):
@@ -37,7 +37,7 @@ class cilindros_shell:
         part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
         part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
         part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/(6/sin(radians(35)))))
-        part.setMeshControls(regions=part.cells, algorithm=MEDIAL_AXIS)
+        part.setMeshControls(regions=part.faces, technique=STRUCTURED)
         part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
         part.generateMesh()
         print(f"Malha {self.name} criada. \n")

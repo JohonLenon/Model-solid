@@ -125,35 +125,18 @@ def create_contact(model, step = 'Initial'):
 def create_surfaces_armour(model, nome_instancia, lado):
     assembly = model.rootAssembly
     instancia = assembly.instances[nome_instancia]
-    r = []
-    for i, face in enumerate(instancia.faces):
-        x, y, z = face.pointOn[0]
-        r.append(sqrt(x**2 + z**2))
-
-    idx_ordenados = sorted(range(len(r)), key=lambda i: r[i])
-    if "inner" in nome_instancia.lower():
-        idx_menores = idx_ordenados[:3]
-        idx_maiores = idx_ordenados[-3:]
-    else:
-        idx_menores = idx_ordenados[:1]
-        idx_maiores = idx_ordenados[-1:]
-
-    faces_inferiores = None
-    faces_superiores = None
-    for i in idx_menores:
-        if faces_inferiores is None:
-            faces_inferiores = instancia.faces[i:i+1]
-        else:
-            faces_inferiores = faces_inferiores +  instancia.faces[i:i+1]
-    for i in idx_maiores:
-        if faces_superiores is None:
-            faces_superiores = instancia.faces[i:i+1]
-        else:
-            faces_superiores = faces_superiores + instancia.faces[i:i+1]
-    if lado == "Interno":
-        model.rootAssembly.Surface(side1Faces=faces_inferiores, name=f'Surf-{nome_instancia}-1')
-    elif lado == "Externo":
-        model.rootAssembly.Surface(side1Faces=faces_superiores, name=f'Surf-{nome_instancia}-2')
+    internas, externas = list(), list()
+    for face in instancia.faces:
+        if face.getNormal()[1]==0:
+            dot = sum(p * n for p, n in zip(face.pointOn[0], face.getNormal()))
+            if dot>0:
+                externas.append(instancia.faces[face.index:face.index+1])
+            else:
+                internas.append(instancia.faces[face.index:face.index+1])
+    if lado == "Externo":
+        model.rootAssembly.Surface(side1Faces=externas, name=f'Surf-{nome_instancia}-1')
+    elif lado == "Interno":
+        model.rootAssembly.Surface(side1Faces=internas, name=f'Surf-{nome_instancia}-2')
 
 def create_contact_surfaces(model, nome_contato = "GeneralContact"):
     print("====================== Contato =========================\n")
@@ -167,8 +150,8 @@ def create_contact_surfaces(model, nome_contato = "GeneralContact"):
 
     for key, values in layers.items():
         if "Armour" not in key and values['type'] is not cilindros_ortotropicos:
-            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces[0:1], name=f'Surf-{key}-1')
-            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces[1:2], name=f'Surf-{key}-2')
+            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
+            model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
         elif values['type'] == cilindros_ortotropicos:
             model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
             model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
@@ -189,19 +172,19 @@ def create_contact_surfaces(model, nome_contato = "GeneralContact"):
             if 'innerarmour' in camada_1.lower():
                 for nome_instancia in [x for x in assembly.instances.keys() if "innerarmour" in x.lower()]:
                     create_surfaces_armour(model, nome_instancia, "Externo")
-                    assignments.append((assembly.surfaces["Surf-"+nome_instancia+"-2"], assembly.surfaces[camada_2], "Contact_Initialization"))
+                    assignments.append((assembly.surfaces["Surf-"+nome_instancia+"-1"], assembly.surfaces[camada_2], "Contact_Initialization"))
             elif 'innerarmour' in camada_2.lower():
                 for nome_instancia in [x for x in assembly.instances.keys() if "innerarmour" in x.lower()]:
                     create_surfaces_armour(model, nome_instancia, "Interno")
-                    assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-1"],"Contact_Initialization"))
+                    assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-2"],"Contact_Initialization"))
             elif 'outerarmour' in camada_1.lower():
                 for nome_instancia in [x for x in assembly.instances.keys() if "outerarmour" in x.lower()]:
                     create_surfaces_armour(model, nome_instancia, "Externo")
-                    assignments.append((assembly.surfaces["Surf-"+nome_instancia+"-2"], assembly.surfaces[camada_2], "Contact_Initialization"))
+                    assignments.append((assembly.surfaces["Surf-"+nome_instancia+"-1"], assembly.surfaces[camada_2], "Contact_Initialization"))
             elif 'outerarmour' in camada_2.lower():
                 for nome_instancia in [x for x in assembly.instances.keys() if "outerarmour" in x.lower()]:
                     create_surfaces_armour(model, nome_instancia, "Interno")
-                    assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-1"],"Contact_Initialization"))
+                    assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-2"],"Contact_Initialization"))
             else:
                 assignments.append((assembly.surfaces[camada_1], assembly.surfaces[camada_2], "Contact_Initialization"))
         except Exception as e:

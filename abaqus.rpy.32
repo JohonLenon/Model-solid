@@ -1,0 +1,163 @@
+# -*- coding: mbcs -*-
+#
+# Abaqus/CAE Release 2024 replay file
+# Internal Version: 2023_09_21-09.55.25 RELr426 190762
+# Run by Johon on Tue Apr 14 16:47:54 2026
+#
+
+# from driverUtils import executeOnCaeGraphicsStartup
+# executeOnCaeGraphicsStartup()
+#: Executing "onCaeGraphicsStartup()" in the site directory ...
+from abaqus import *
+from abaqusConstants import *
+session.Viewport(name='Viewport: 1', origin=(1.23958, 1.24074), width=182.467, 
+    height=123.081)
+session.viewports['Viewport: 1'].makeCurrent()
+from driverUtils import executeOnCaeStartup
+executeOnCaeStartup()
+execfile('main.py', __main__.__dict__)
+#: The model "Model-1" has been created.
+#: The model "ModeloRiser" has been created.
+#: Length of edge = 891.16435620708
+#: Length of edge = 118.045343958636
+#: Length of edge = 891.16435620708
+#: Length of edge = 118.045343958636
+#: Length of edge = 118.045343958636
+#: Length of edge = 118.045343958636
+#: Length of edge = 891.16435620708
+#: Length of edge = 147.65485471872
+#: Length of edge = 891.16435620708
+#: Length of edge = 147.65485471872
+#: Length of edge = 147.65485471872
+#: Length of edge = 147.65485471872
+#: Length of edge = 7.10156182092765
+#: Length of edge = 2.99999363434691
+#: Length of edge = 7.54773324423129
+#: Length of edge = 2.99999650496883
+#: Length of edge = 186.816620610965
+#: Length of edge = 10.4606807737266
+#: Length of edge = 199.715998459524
+#: Length of edge = 183.11071699279
+#: Length of edge = 3
+#: Length of edge = 7.1015618209142
+#: Length of edge = 2.99999260036753
+#: Length of edge = 7.54773324421788
+#: Length of edge = 2.99999363434744
+#: Length of edge = 173.917284927788
+#: Length of edge = 10.4606807737266
+#: Length of edge = 186.816661167462
+#: Length of edge = 170.467263801273
+#: Length of edge = 3
+#: Length of edge = 195.75420826742
+#: Length of edge = 10.4606807737266
+#: Length of edge = 3
+#: Length of edge = 236.966835342252
+#: Length of edge = 10.4606807737266
+#: Length of edge = 236.966835342252
+#: Length of edge = 241.762713305137
+#: Length of edge = 3
+#: Length of edge = 241.762713305138
+#: Length of edge = 10.4606807737266
+#: Length of edge = 3
+#: Length of edge = 236.966835342253
+#: Length of edge = 10.4606807737266
+#: Length of edge = 236.966835342252
+#: Length of edge = 241.762713305138
+#: Length of edge = 3
+#: Length of edge = 241.762713305138
+#: Length of edge = 10.4606807737266
+#: Length of edge = 3
+#: Length of edge = 236.966835342253
+#: Length of edge = 10.4606807737266
+#: Length of edge = 236.966835342252
+#: Length of edge = 241.762713305138
+#: Length of edge = 241.762713305138
+#: Length of edge = 3
+#: Length of edge = 183.110753622784
+#: Length of edge = 7.10156182092765
+#: Length of edge = 2.99999363434691
+#: Length of edge = 7.54773324423129
+#: Length of edge = 2.99999650496883
+#: Length of edge = 7.1015618209142
+#: Length of edge = 2.99999260036753
+#: Length of edge = 7.54773324421788
+#: Length of edge = 2.99999363434744
+#: Length of edge = 1098.92142169384
+#: Length of edge = 1098.92142330272
+#: Length of edge = 1077.12197664233
+#: Length of edge = 1077.12197809545
+#: Length of edge = 891.16435620708
+#: Length of edge = 161.792021659874
+#: Length of edge = 891.16435620708
+#: Length of edge = 161.792021659874
+#: Length of edge = 161.792021659874
+#: Length of edge = 161.792021659874
+#: Length of edge = 7.52905630089667
+#: Length of edge = 2.99999553556519
+#: Length of edge = 7.12023876419519
+#: Length of edge = 2.99999755940809
+#: Length of edge = 183.262807141441
+#: Length of edge = 10.4606807737266
+#: Length of edge = 195.916800044928
+#: Length of edge = 186.658507328785
+#: Length of edge = 3
+#: Length of edge = 7.52905630092501
+#: Length of edge = 2.99999480775498
+#: Length of edge = 7.12023876422349
+#: Length of edge = 2.99999553556552
+#: Length of edge = 170.608849091924
+#: Length of edge = 10.4606807737266
+#: Length of edge = 183.262840953197
+#: Length of edge = 173.770085147171
+#: Length of edge = 3
+#: Length of edge = 199.546967772671
+#: Length of edge = 10.4606807737266
+#: Length of edge = 3
+#: Length of edge = 241.558093119187
+#: Length of edge = 10.4606807737266
+#: Length of edge = 241.558093119187
+#: Length of edge = 237.163655372495
+#: Length of edge = 3
+#: Length of edge = 237.163655372496
+#: Length of edge = 10.4606807737266
+#: Length of edge = 3
+#: Length of edge = 241.558093119187
+#: Length of edge = 10.4606807737266
+#: Length of edge = 241.558093119187
+#: Length of edge = 237.163655372496
+#: Length of edge = 3
+#: Length of edge = 237.163655372496
+#: Length of edge = 10.4606807737266
+#: Length of edge = 3
+#: Length of edge = 241.558093119187
+#: Length of edge = 10.4606807737266
+#: Length of edge = 241.558093119187
+#: Length of edge = 237.163655372496
+#: Length of edge = 237.163655372496
+#: Length of edge = 3
+#: Length of edge = 186.658544446928
+#: Length of edge = 7.52905630089667
+#: Length of edge = 2.99999553556519
+#: Length of edge = 7.12023876419519
+#: Length of edge = 2.99999755940809
+#: Length of edge = 7.52905630092501
+#: Length of edge = 2.99999480775498
+#: Length of edge = 7.12023876422349
+#: Length of edge = 2.99999553556552
+#: Length of edge = 1078.01661421213
+#: Length of edge = 1078.01661525434
+#: Length of edge = 1097.99133113327
+#: Length of edge = 1097.9913322774
+#: Length of edge = 891.16435620708
+#: Length of edge = 174.358392274234
+#: Length of edge = 891.16435620708
+#: Length of edge = 174.358392274234
+#: Length of edge = 174.358392274234
+#: Length of edge = 174.358392274234
+#: The interaction property "ContatoTension" has been created.
+#: The interaction property "ContatoShell" has been created.
+#: The interaction "GeneralContact" has been created.
+#: The interaction property "ContatoTension" has been created.
+#: The interaction property "ContatoShell" has been created.
+#: The interaction "GeneralContact-2" has been created.
+print('RT script done')
