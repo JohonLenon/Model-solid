@@ -33,8 +33,8 @@ def reload_modules(exclude=("main",)):
             importlib.import_module(module_name)
 reload_modules()
 
-from set_dados_gerais import names, layers
-from set_camadas import tension_armour, pitch
+from set_dados_gerais import names, model_length
+from set_camadas import layers, tension_armour, pitch
 from create_contact import create_general
 
 nome_modelo = names["Model"]
@@ -50,12 +50,11 @@ for name, layer in layers.items():
     if layer["type"] == tension_armour:
         layer["pitch"] = pitch(layer['mid_diameter']/2, layer['lay_angle'])
         layer["length"] = layer['pitch']
-passo = 2*min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
+passo = model_length*min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
 passo = min(math.ceil(passo/(layer['base']/tan(radians(layer['lay_angle']))))*(layer['base']/tan(radians(layer['lay_angle']))) for layer in layers.values() if layer["type"] == tension_armour)
 for name, layer in layers.items():
     if layer["type"] == tension_armour:
         layer["length"] = passo
-# layers[min((name for name, layer in layers.items() if layer["type"] == tension_armour), key=lambda n: layers[n]["pitch"])]['length']=passo
 for name, layer in layers.items():
     if layer["type"] != tension_armour:
         layer["pitch"]=passo
@@ -64,8 +63,7 @@ for name, layer in layers.items():
     type = layer["type"]
     kwargs = {k: v for k, v in layer.items() if k != "type"}
     obj = type(**kwargs)
-    obj.create_geometry(model)
+    obj.build(model)
 
 create_general(model, passo)
-session.viewports['Viewport: 1'].assemblyDisplay.geometryOptions.setValues(
-datumAxes=OFF, datumPlanes=OFF)
+session.viewports['Viewport: 1'].assemblyDisplay.geometryOptions.setValues(datumAxes=OFF, datumPlanes=OFF)

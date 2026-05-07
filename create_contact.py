@@ -2,8 +2,8 @@
 
 from caeModules import regionToolset
 from abaqusConstants import * # type: ignore
-from set_dados_gerais import layers, obter_chave_ordenacao, names
-from set_camadas import cilindros_ortotropicos
+from set_dados_gerais import names
+from set_camadas import layers, obter_chave_ordenacao, cilindros_ortotropicos, cilindros_shell
 from numpy import sqrt
 from create_analysis import create_analysis
 
@@ -139,7 +139,7 @@ def create_surfaces_armour(model, nome_instancia, lado):
         model.rootAssembly.Surface(side1Faces=internas, name=f'Surf-{nome_instancia}-2')
 
 def create_contact_surfaces(model, nome_contato = "GeneralContact"):
-    print("====================== Contato =========================\n")
+    print(f"\n============================ {'Contato': ^24} ============================\n")
     assembly = model.rootAssembly
     contatos = {
         "ContatoTension": True,
@@ -149,10 +149,22 @@ def create_contact_surfaces(model, nome_contato = "GeneralContact"):
         contact_props(model, item, values)
 
     for key, values in layers.items():
-        if "Armour" not in key and values['type'] is not cilindros_ortotropicos:
-            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
-            model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
-        elif values['type'] == cilindros_ortotropicos:
+        if "Armour" not in key and values['type'] not in (cilindros_ortotropicos, cilindros_shell):
+            instancia = assembly.instances[key]
+            internas, externas = list(), list()
+            for face in instancia.faces:
+                normal = face.getNormal()
+                if abs(normal[0]) > 0.99:
+                    continue
+                if abs(normal[1]) < 1e-6:
+                    dot = sum(p * n for p, n in zip(face.pointOn[0], normal))
+                    if dot > 0:
+                        externas.append(instancia.faces[face.index:face.index+1])
+                    else:
+                        internas.append(instancia.faces[face.index:face.index+1])
+            model.rootAssembly.Surface(side1Faces=externas, name=f'Surf-{key}-1')
+            model.rootAssembly.Surface(side1Faces=internas, name=f'Surf-{key}-2')
+        elif values['type'] in (cilindros_ortotropicos, cilindros_shell):
             model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
             model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
 
@@ -204,5 +216,5 @@ def create_general(model, passo, step='Initial'):
     model.ExpInitialization(name='Contact_Initialization', overclosureType=INTERFERENCE)
     create_contact_surfaces(model)
     create_analysis(model, passo)
-    model.interactions[nome_contato].deactivate(names['Step2'])
-    model.ContactExp(name=nome_contato+"-2", createStepName=names['Step2'], contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[0]),))
+    model.interactions[nome_contato].deactivate(names['Step_Bending'])
+    model.ContactExp(name=f"{nome_contato}-2", createStepName=names['Step_Bending'], contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[0]),))

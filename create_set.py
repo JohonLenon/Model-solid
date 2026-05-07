@@ -9,10 +9,10 @@ def create_set_geral(model, y_fixo):
         instancia = assembly.instances[nome_instancia]
         if "armour" in nome_instancia.lower():
             vertices = instancia.vertices
-            verticesNoPlano.append(vertices.getByBoundingBox(yMin=y_fixo-10, yMax=y_fixo+10))
+            verticesNoPlano.append(vertices.getByBoundingBox(yMin=y_fixo-10E-3, yMax=y_fixo+10E-3))
         else:
-            arestasNoPlano.append(instancia.edges.getByBoundingBox(yMin=y_fixo-10, yMax=y_fixo+10))
-    return model.rootAssembly.Set(vertices=verticesNoPlano, edges=arestasNoPlano, name=f'RegiaoY-{abs(int(y_fixo))}')
+            arestasNoPlano.append(instancia.edges.getByBoundingBox(yMin=y_fixo-10E-3, yMax=y_fixo+10E-3))
+    return model.rootAssembly.Set(vertices=verticesNoPlano, edges=arestasNoPlano, name=f'RegiaoY-{abs(int(1000*y_fixo))}')
 
 def create_set_por_camada(model, y_fixo):
     assembly = model.rootAssembly

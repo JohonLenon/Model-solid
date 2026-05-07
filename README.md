@@ -1,3 +1,5 @@
+Versão 2026-05-07: Generalização do código e segmentação em funções.
+
 Versão 2026-03-06: Alteração do método da espessura equivalente para o método do laminado equivalente.
 
 Versão 2026-01-15: Criação de armadura de pressão 3D.
