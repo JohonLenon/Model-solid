@@ -2,6 +2,7 @@ from caeModules import mesh
 from abaqusConstants import * # type: ignore
 from numpy import pi, sin, cos, tan, radians, array, diag
 from set_dados_gerais import discretization
+import json
 
 t_seed, c_seed = (discretization["Tension armour"], discretization["Circumferential seed"])
 
@@ -9,7 +10,101 @@ def pitch(R, angle):
     p = 2*pi*R/tan(radians(angle))
     return p
 
-class cilindros_shell:
+class cylinder:
+    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density):
+        self.name = name
+        self.pitch = pitch
+        self.mid_diameter = mid_diameter
+        self.radius = mid_diameter/2
+        self.thickness = thickness
+        self.name_material = name_material
+        self.young_modulus = young_modulus
+        self.poisson = poisson
+        self.density = density
+    def create_geometry(self, model):
+        """
+        Cria a geometria da casca cilíndrica e retorna um objeto de parte do abaqus e um objeto de sketch.
+        """
+        print(f"\n================================ {self.name: ^24} ================================\n")
+        sketch = model.ConstrainedSketch(name=f'sketch_{self.name}', sheetSize=200.0)
+        sketch.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius))
+        part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
+        part.BaseShellExtrude(sketch=sketch, depth= self.pitch)
+        part.setValues(geometryRefinement=EXTRA_FINE)
+        print(f"Geometria da camada {self.name} criada. \n")
+        return part, sketch
+    def create_mesh(self, part):
+        """
+        Cria uma malha estruturada com elemento S4R com controle de hourglass enhanced.
+        """
+        part.seedEdgeByNumber(edges=part.edges, number=c_seed)
+        part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
+        part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
+        base, lay_angle = self.get_solid_helix_props(layers)
+        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/((base)/sin(radians(lay_angle)))))
+        part.setMeshControls(regions=part.faces, technique=STRUCTURED)
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
+        part.generateMesh()
+        print(f"Malha da camada {self.name} criada. \n")
+    def create_material(self, model):
+        """
+        Cria um material elástico linear com módulo de elasticidade, poisson e densidade. A densidade é necessária
+        para a análise explícita.
+        """
+        try:
+            material = model.materials[self.name_material]
+        except:
+            material = model.Material(name=self.name_material)
+            material.Elastic(table=((self.young_modulus, self.poisson),))
+            material.Density(table=((self.density,),))
+        print(f"Material {material.name} da camada {self.name} criado. \n")
+    def create_assembly(self, model, part, sketch):
+        """
+        Cria a parte no assembly e posiciona rotacionando-a para corresponder ao eixo das armaduras de tração e
+        apaga o sketch criado na etapa de criação da geometria.
+        """
+        assembly = model.rootAssembly
+        assembly.Instance(name=self.name, part=part, dependent=ON)
+        assembly.rotate(instanceList=[self.name], axisPoint = (0,0,0), axisDirection =(1, 0, 0), angle = -90)
+        g = sketch.geometry
+        for k in g.keys():
+            sketch.delete((g[k],))
+        print(f"Assembly da camada {self.name} criado. \n")
+    def get_solid_helix_props(self, layers):
+        """
+        Acessa e retorna os valores da base da seção da armadura de tração e do seu ângulo de hélice para ajuste das
+        dimensões da malha estruturada.
+        """
+        tension_layers = [layer for layer in layers.values() if layer.get("type") in armour_types and 'base' in layer and 'lay_angle' in layer]
+        if not tension_layers:
+            raise ValueError("Nenhuma layer válida do tipo 'solid_helix' encontrada.")
+        selected = min(tension_layers, key=lambda l: abs(l['base']))
+        base = selected['base']
+        lay_angle = abs(selected['lay_angle'])
+        return base, lay_angle
+
+class helix:
+    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density):
+        self.name = name
+        self.pitch = pitch
+        self.mid_diameter = mid_diameter
+        self.radius = mid_diameter/2
+        self.thickness = thickness
+        self.name_material = name_material
+        self.young_modulus = young_modulus
+        self.poisson = poisson
+        self.density = density
+    def create_material(self, model):
+        try:
+            material = model.materials[self.name_material]
+        except:
+            material = model.Material(name=f'{self.name_material}')
+            material.Elastic(table=((self.young_modulus, self.poisson),))
+            material.Density(table=((self.density,),))
+
+            print(f"Material {material.name} da camada {self.name} criado.\n")
+
+class shell_cylinder(cylinder):
     """
     Representa uma camada de casca cilíndrica. Cria uma casca cilíndrica com malha estruturada e alinhada com as dimensões
     dos fios da armadura de tração. Possui material linear elástico. Ao incluir no assembly é girada para corresponder ao
@@ -24,58 +119,6 @@ class cilindros_shell:
     poisson         -   Coeficiente de poisson              (input)
     density         -   Densidade do material em kg/m³      (input)
     """ 
-
-    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density):
-        self.name = name
-        self.pitch = pitch
-        self.mid_diameter = mid_diameter
-        self.radius = mid_diameter/2
-        self.thickness = thickness
-        self.name_material = name_material
-        self.young_modulus = young_modulus
-        self.poisson = poisson
-        self.density = density
-
-    def create_geometry(self, model):
-        """
-        Cria a geometria da casca cilíndrica e retorna um objeto de parte do abaqus e um objeto de sketch.
-        """
-        print(f"\n============================ {self.name: ^24} ============================\n")
-        sketch = model.ConstrainedSketch(name=f'sketch_{self.name}', sheetSize=200.0)
-        sketch.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius))
-        part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-        part.BaseShellExtrude(sketch=sketch, depth= self.pitch)
-        part.setValues(geometryRefinement=EXTRA_FINE)
-        print(f"Geometria da camada {self.name} criada. \n")
-        return part, sketch
-
-    def create_mesh(self, part):
-        """
-        Cria uma malha estruturada com elemento S4R com controle de hourglass enhanced.
-        """
-        part.seedEdgeByNumber(edges=part.edges, number=c_seed)
-        part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
-        part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
-        base, lay_angle = self.get_tension_armour_props(layers)
-        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/((base)/sin(radians(lay_angle)))))
-        part.setMeshControls(regions=part.faces, technique=STRUCTURED)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
-        part.generateMesh()
-        print(f"Malha da camada {self.name} criada. \n")
-    
-    def create_material(self, model):
-        """
-        Cria um material elástico linear com módulo de elasticidade, poisson e densidade. A densidade é necessária
-        para a análise explícita.
-        """
-        try:
-            material = model.materials[self.name_material]
-        except:
-            material = model.Material(name=self.name_material)
-            material.Elastic(table=((self.young_modulus, self.poisson),))
-            material.Density(table=((self.density,),))
-        print(f"Material {material.name} da camada {self.name} criado. \n")
-
     def create_section(self, model, part):
         """
         Cria a seção de shell e associa ao material criado anteriormente. Importante atentar ao offsetType para a
@@ -84,33 +127,6 @@ class cilindros_shell:
         model.HomogeneousShellSection(name=f'Section_{self.name}', material=self.name_material, thickness=self.thickness)
         region = part.Set(faces=part.faces, name=f'Set-{self.name}')
         part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
-
-    def create_assembly(self, model, part, sketch):
-        """
-        Cria a parte no assembly e posiciona rotacionando-a para corresponder ao eixo das armaduras de tração e
-        apaga o sketch criado na etapa de criação da geometria.
-        """
-        assembly = model.rootAssembly
-        assembly.Instance(name=self.name, part=part, dependent=ON)
-        assembly.rotate(instanceList=[self.name], axisPoint = (0,0,0), axisDirection =(1, 0, 0), angle = -90)
-        g = sketch.geometry
-        for k in g.keys():
-            sketch.delete((g[k],))
-        print(f"Assembly da camada {self.name} criado. \n")
-
-    def get_tension_armour_props(self, layers):
-        """
-        Acessa e retorna os valores da base da seção da armadura de tração e do seu ângulo de hélice para ajuste das
-        dimensões da malha estruturada.
-        """
-        tension_layers = [layer for layer in layers.values() if layer.get("type") == tension_armour and 'base' in layer and 'lay_angle' in layer]
-        if not tension_layers:
-            raise ValueError("Nenhuma layer válida do tipo 'tension_armour' encontrada.")
-        selected = min(tension_layers, key=lambda l: abs(l['base']))
-        base = selected['base']
-        lay_angle = abs(selected['lay_angle'])
-        return base, lay_angle
-    
     def build(self, model):
         """
         Constrói toda a camada.
@@ -121,7 +137,7 @@ class cilindros_shell:
         self.create_section(model, part)
         self.create_assembly(model, part, sketch)
 
-class cilindros_ortotropicos:
+class orthotropic_cylinder(cylinder):
     """
     Representa uma camada de casca cilíndrica ortotrópica. Cria uma casca cilíndrica ortotrópica com malha estruturada e 
     alinhada com as dimensões dos fios da armadura de tração. Possui material linear elástico. Ao incluir no assembly é
@@ -142,51 +158,15 @@ class cilindros_ortotropicos:
     J               -   Momento de inércia à torção         (input)
     lay_angle       -   Ângulo de hélice                    (input)
     """ 
-
     def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, n, Ix, Iy, A, J, lay_angle):
-        self.name = name
-        self.pitch = pitch
-        self.mid_diameter = mid_diameter
-        self.radius = mid_diameter/2
-        self.thickness = thickness
-        self.name_material = name_material
-        self.young_modulus = young_modulus
-        self.poisson = poisson
-        self.density = density
+        super().__init__(name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density)
         self.n = n
         self.Ix = Ix
         self.Iy = Iy
         self.A = A
         self.J = J
         self.lay_angle = lay_angle
-    def create_geometry(self, model):
-        """
-        Cria a geometria da casca cilíndrica e retorna um objeto de parte do abaqus e um objeto de sketch.
-        """
-        print(f"\n============================ {self.name: ^24} ============================\n")
-        sketch = model.ConstrainedSketch(name=f'sketch_{self.name}', sheetSize=200.0)
-        sketch.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius))
-        part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-        part.BaseShellExtrude(sketch=sketch, depth= self.pitch)
-        part.setValues(geometryRefinement=EXTRA_FINE)
-        print(f"Geometria da camada {self.name} criada. \n")
-        return part, sketch
-    
-    def create_mesh(self, part):
-        """
-        Cria uma malha estruturada com elemento S4R com controle de hourglass enhanced.
-        """
-        part.seedEdgeByNumber(edges=part.edges, number=c_seed)
-        part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
-        part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
-        base, lay_angle = self.get_tension_armour_props(layers)
-        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/((base)/sin(radians(lay_angle)))))
-        part.setMeshControls(regions=part.faces, technique=STRUCTURED)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
-        part.generateMesh()
-        print(f"Malha da camada {self.name} criada. \n")
-
-    def create_ABD_section(self, model, part):
+    def create_section(self, model, part):
         """
         Cria uma seção com material ortotrópico por meio de uma analogia com compósitos a partir dos
         momentos de inércia, módulo de elasticidade, pitch e número de fios. Além disso, rotaciona a
@@ -195,22 +175,24 @@ class cilindros_ortotropicos:
         ABD não há definição explícita da espessura da camada.
         """
         passo = pitch(self.radius, self.lay_angle)
-        K = 1
-
-        EAeq = self.n*self.young_modulus*self.A/passo
-        I2 = (self.Ix+self.Iy)/2-(((self.Iy-self.Ix)**2+4*self.J**2)**(1/2))/2
-        EIeq = K*self.n*self.young_modulus*I2/passo
-        
-        eps=10**(-6)
         a = radians(self.lay_angle)
         c, s = cos(a), sin(a)
+        K = 1
+
+        EAeq = self.n*self.young_modulus*self.A/(passo*s)
+        I2 = (self.Ix+self.Iy)/2-(((self.Iy-self.Ix)**2+4*self.J**2)**(1/2))/2
+        EIeq = K*self.n*self.young_modulus*I2/(passo*s)
+        G = self.young_modulus/(2*(1+self.poisson))
+        GJeq = self.n*G*self.J/(passo*s)
+        
+        eps=10**(-3)
         T = array([
                 [ c**2,    s**2,   c*s],
                 [ s**2,    c**2,  -c*s],
                 [-2*c*s,  2*c*s,  c**2 - s**2]
                 ])
         A12 = diag([EAeq, eps * EAeq, eps * EAeq])
-        D12 = diag([EIeq, eps * EIeq, eps * EIeq])
+        D12 = diag([EIeq, eps * EIeq, GJeq])
         Axy = T.T @ A12 @ T
         Dxy = T.T @ D12 @ T
 
@@ -253,101 +235,75 @@ class cilindros_ortotropicos:
         )
         part.assignThickness(faces=part.faces, thickness=self.thickness)
         print(f"Seção de matriz ABD da camada {self.name} criada. \n")
-
-    def create_assembly(self, model, part, sketch):
-        """
-        Cria a parte no assembly e posiciona rotacionando-a para corresponder ao eixo das armaduras de tração e
-        apaga o sketch criado na etapa de criação da geometria.
-        """
-        assembly = model.rootAssembly
-        assembly.Instance(name=self.name, part=part, dependent=ON)
-        assembly.rotate(instanceList=[self.name], axisPoint = (0,0,0), axisDirection =(1, 0, 0), angle = -90)
-        g = sketch.geometry
-        for k in g.keys():
-            sketch.delete((g[k],))
-        print(f"Assembly da camada {self.name} criado. \n")
-
-    def get_tension_armour_props(self, layers):
-        """
-        Acessa e retorna os valores da base da seção da armadura de tração e do seu ângulo de hélice para ajuste das
-        dimensões da malha estruturada.
-        """
-        tension_layers = [layer for layer in layers.values() if layer.get("type") == tension_armour and 'base' in layer and 'lay_angle' in layer]
-        if not tension_layers:
-            raise ValueError("Nenhuma layer válida do tipo 'tension_armour' encontrada.")
-        selected = min(tension_layers, key=lambda l: abs(l['base']))
-        base = selected['base']
-        lay_angle = abs(selected['lay_angle'])
-        return base, lay_angle
-    
     def build(self, model):
         """
         Constrói toda a camada.
         """
         part, sketch = self.create_geometry(model)
         self.create_mesh(part)
-        self.create_ABD_section(model, part)
+        self.create_section(model, part)
         self.create_assembly(model, part, sketch)
 
-class cilindros_solidos:
-    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, plastic_table = None, **kwargs):
-        self.name = name
-        self.pitch = pitch
-        self.mid_diameter = mid_diameter
-        self.radius = mid_diameter/2
-        self.thickness = thickness
-        self.name_material = name_material
-        self.young_modulus = young_modulus
-        self.poisson = poisson
-        self.density = density
-        self.plastic_table = plastic_table
+class solid_cylinder(cylinder):
+    """
+    Representa uma camada de cilindro sólido. Cria um cilindro sólido com malha estruturada e alinhada com as dimensões
+    dos fios da armadura de tração. Possui material linear elástico. Ao incluir no assembly é girada para corresponder ao
+    eixo da armadura de tração.
+
+    name            -   Nome da parte                       (input)
+    pitch           -   Comprimento do pitch em metros      (input)
+    mid_diameter    -   Diâmetro médio em metros            (input)
+    thickness       -   Espessura em metros                 (input)
+    name_material   -   Nome do material                    (input)
+    young_modulus   -   Módulo de elasticidade em Pa        (input)
+    poisson         -   Coeficiente de poisson              (input)
+    density         -   Densidade do material em kg/m³      (input)
+    """ 
     def create_geometry(self, model):
-        # Cria geometria
-        print(f"\n============================ {self.name: ^24} ============================\n")
-        s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
-        s.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius-self.thickness/2))
-        s.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius+self.thickness/2))
+        """
+        Cria a geometria do cilindro sólido e retorna um objeto de parte do abaqus e um objeto de sketch.
+        """
+        print(f"\n================================ {self.name: ^24} ================================\n")
+        sketch = model.ConstrainedSketch(name='rect', sheetSize=200.0)
+        sketch.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius-self.thickness/2))
+        sketch.CircleByCenterPerimeter(center=(0,0), point1=(0, self.radius+self.thickness/2))
         part = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
-        part.BaseSolidExtrude(sketch=s, depth= self.pitch)
+        part.BaseSolidExtrude(sketch=sketch, depth= self.pitch)
         part.setValues(geometryRefinement=EXTRA_FINE)
         print(f"Geometria da camada {self.name} criada. \n")
-
-        # Cria malha
+        return part, sketch
+    def create_mesh(self, part):
+        """
+        Cria uma malha estruturada com elemento C3D8I.
+        """
         part.seedEdgeByNumber(edges=part.edges, number=c_seed)
         part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
         part.PartitionCellByDatumPlane(cells=part.cells, datumPlane=part.datums[3])
-        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/(6*10**(-3)/sin(radians(35))))) # Conferir generalidade
+        base, lay_angle = self.get_solid_helix_props(layers)
+        part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.pitch/((base)/sin(radians(lay_angle)))))
         part.setMeshControls(regions=part.cells, technique=STRUCTURED)
-        part.setElementType(regions=((part.cells,)), elemTypes=(mesh.ElemType(elemCode=C3D8I,hourglassControl=ENHANCED),))
+        part.setElementType(regions=((part.cells,)), elemTypes=(mesh.ElemType(elemCode=C3D8I,),))
         part.generateMesh()
         print(f"Malha da camada {self.name} criada. \n")
-
-        # Cria material
-        try:
-            material = model.materials[self.name_material]
-        except:
-            material = model.Material(name=self.name_material)
-            material.Elastic(table=((self.young_modulus, self.poisson),))
-            material.Density(table=((self.density,),))
-            if self.plastic_table is not None:
-                material.Plastic(table=self.plastic_table) 
-        print(f"Material {material.name} da camada {self.name} criado. \n")
-
-        # Cria seção e associa material
+    def create_section(self, model, part):
+        """
+        Cria a seção sólida e associa ao material criado anteriormente. Importante atentar ao offsetType para a
+        utilização da superfície média devido ao diâmetro médio utilizado na definição da geometria.
+        """
         model.HomogeneousSolidSection(name=f'Section_{self.name}', material=self.name_material)
         region = part.Set(cells=part.cells, name=f'Set-{self.name}')
         part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+    def build(self, model):
+        """
+        Constrói toda a camada.
+        """
+        part, sketch = self.create_geometry(model)
+        self.create_mesh(part)
+        self.create_material(model)
+        self.create_section(model, part)
+        self.create_assembly(model, part, sketch)
 
-        # Cria assembly e posiciona
-        assembly = model.rootAssembly
-        assembly.Instance(name=self.name, part=part, dependent=ON)
-        assembly.rotate(instanceList=[self.name], axisPoint = (0,0,0), axisDirection =(1, 0, 0), angle = -90)
-        g = s.geometry
-        for k in g.keys():
-            s.delete((g[k],))
-        print(f"Assembly da camada {self.name} criado. \n")
-
-class tension_armour:
+class solid_helix(helix):
     """
     Representa uma camada de armadura de tração sólida. Cria uma camada de armadura de tração com malha estruturada.
     Possui material linear elástico. Ao incluir no assembly é multiplicada para uma quantidade n de fios.
@@ -363,31 +319,23 @@ class tension_armour:
     lay_angle           -   Ângulo de hélice                                (input)
     n                   -   Número de fios                                  (input)
     base                -   Comprimento da base da seção transversal        (input)
-    length              -   Comprimento total do modelo                     (input)
     revolve_direction   -   Direção de giro da hélice                       (input)
+    length              -   Comprimento total do modelo                     (input)
     """ 
-    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, lay_angle, n, base, length = 0, revolve_direction = ON):
-        self.name = name
-        self.pitch = pitch
-        self.mid_diameter = mid_diameter
-        self.radius = mid_diameter/2
-        self.thickness = thickness
-        self.name_material = name_material
-        self.young_modulus = young_modulus
-        self.poisson = poisson
-        self.density = density
+    def __init__(self, name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density, lay_angle, n, base, revolve_direction, length = 0):
+        super().__init__(name, pitch, mid_diameter, thickness, name_material, young_modulus, poisson, density)
         self.lay_angle = lay_angle
         self.n = n
         self.base = base
-        self.length = length
         self.revolve_direction = revolve_direction
+        self.length = length
     def create_geometry(self, model):
         """
         Cria a geometria do fio helicoidal com um comprimento extra (10% maior), realiza um corte no plano transversal ao pitch
         a fim de manter as armaduras no plano das seções das extremidades e ajusta as partições automáticas da hélice para permitir
         a criação de uma malha estruturada. Retorna um objeto de parte do abaqus e um objeto de sketch.
         """
-        print(f"\n============================ {self.name: ^24} ============================\n")
+        print(f"\n================================ {self.name: ^24} ================================\n")
         sketch = model.ConstrainedSketch(name=f'sketch_{self.name}', sheetSize=200.0)
         sketch.rectangle(point1=(self.radius-self.thickness/2,0), point2=(self.radius+self.thickness/2, self.base/sin(radians(self.lay_angle))))
         sketch.ConstructionLine(point1=(0.0, -self.length), point2=(0.0, self.length))
@@ -444,16 +392,6 @@ class tension_armour:
         p.generateMesh()
         print(f"Malha da camada {self.name} criada. \n")
 
-    def create_material(self, model):
-        try:
-            material = model.materials[self.name_material]
-        except:
-            material = model.Material(name=f'{self.name_material}')
-            material.Elastic(table=((self.young_modulus, self.poisson),))
-            material.Density(table=((self.density,),))
-
-            print(f"Material {material.name} da camada {self.name} criado.\n")
-
     def create_section(self, model, p):
         # Cria seção e associa material
         model.HomogeneousSolidSection(name=f'Section_{self.name_material}', material=self.name_material, thickness=None)
@@ -480,7 +418,7 @@ class tension_armour:
         for k in g.keys():
             sketch.delete((g[k],))
 
-        # assembly.suppressFeatures((instance_name,))
+        assembly.suppressFeatures((instance_name,))
         print(f"Assembly da camada {self.name} criado. \n")
     
     def build(self, model):
@@ -493,117 +431,22 @@ class tension_armour:
         self.create_section(model, p)
         self.create_assembly(model, p, extend_factor, sketch)
 
-layers = {
-    "InterlockedCarcass": {
-        "type": cilindros_ortotropicos,
-        "name": "InterlockedCarcass",
-        "n": 1,
-        "pitch": None,
-        "mid_diameter": 66.7,
-        "thickness": 3.5,
-        "name_material": "AISI304",
-        "young_modulus": 193000,
-        "poisson": 0.3,
-        "density": 7.85E-9,
-        "Ix": 20,
-        "Iy": 556,
-        "A": 19.6,
-        "J": 6.5,
-        "lay_angle": 87.5},
-
-    "PressureSheath": {
-        "type": cilindros_shell,
-        "name": "PressureSheath",
-        "pitch": None,
-        "mid_diameter": 75.15,
-        "thickness":  4.95,
-        "name_material": "Grilamid",
-        "young_modulus": 284,
-        "poisson": 0.4,
-        "density": 0.97E-9},
-
-    "PressureReinforcement": {
-        "type": cilindros_ortotropicos,
-        "name": "PressureReinforcement",
-        "n": 2,
-        "pitch": None,
-        "mid_diameter": 86.3,
-        "thickness":  6.2,
-        "name_material": "FI15",
-        "young_modulus": 207000,
-        "poisson": 0.3,
-        "density": 7.8E-9,
-        "Ix": 100,
-        "Iy": 771,
-        "A": 51.5,
-        "J": 204.6,
-        "lay_angle": 85.5},
-
-    "InnerAntiFrictionTape": {
-        "type": cilindros_shell,
-        "name": "InnerAntiFrictionTape",
-        "pitch": None,
-        "mid_diameter": 94,
-        "thickness": 1.5,
-        "name_material": "Rilsan",
-        "young_modulus": 301,
-        "poisson": 0.4,
-        "density": 0.97E-9},
-
-    "InnerArmour": {
-        "type": tension_armour,
-        "name": "InnerArmour",
-        "n": 40,
-        "pitch": None,
-        "lay_angle": 35,
-        "mid_diameter": 98.5,
-        "base":6,
-        "thickness": 3,
-        "name_material": "FI41",
-        "young_modulus": 211000,
-        "poisson": 0.3,
-        "density": 7.85E-9,
-        "revolve_direction": OFF,
-        "length": 0},
-
-    "OuterAntiFrictionTape": {
-        "type": cilindros_shell,
-        "name": "OuterAntiFrictionTape",
-        "pitch": None,
-        "mid_diameter": 103,
-        "thickness": 1.5,
-        "name_material": "Rilsan",
-        "young_modulus": 301,
-        "poisson": 0.4,
-        "density": 0.97E-9},
-
-    "OuterArmour": {
-        "type": tension_armour,
-        "name": "OuterArmour",
-        "pitch": None,
-        "lay_angle": 35,
-        "n": 44,
-        "mid_diameter": 107.5,
-        "base":6,
-        "thickness": 3,
-        "name_material": "FI41",
-        "young_modulus": 211000,
-        "poisson": 0.3,
-        "density": 7.85E-9,
-        "revolve_direction": ON,
-        "length": 0},
-
-    "FabricTape": {
-        "type": cilindros_shell,
-        "name": "FabricTape",
-        "pitch": None,
-        "mid_diameter": 111,
-        "thickness": 0.5,
-        "name_material": "HDPE",
-        "young_modulus": 600,
-        "poisson": 0.45,
-        "density": 0.97E-9}
+with open(r"risers\witz-mpa.json", "r") as f:
+    layers = json.load(f)
+types = {
+    "shell_cylinder": shell_cylinder,
+    "orthotropic_cylinder": orthotropic_cylinder,
+    "solid_cylinder": solid_cylinder,
+    "solid_helix": solid_helix
 }
+constantes = {
+    "ON": ON,
+    "OFF": OFF
+}
+for layer in layers.values():
+    layer["type"] = types[layer["type"]]
+    if "revolve_direction" in layer:
+        layer["revolve_direction"] = constantes[layer["revolve_direction"]]
 
 layer_order = {layer: idx for idx, layer in enumerate(layers)}
 def obter_chave_ordenacao(s):
@@ -611,3 +454,6 @@ def obter_chave_ordenacao(s):
     if "-" in parte:
         parte = "-".join(parte.split("-")[:-1])
     return layer_order.get(parte, float('inf'))
+
+armour_types = [t['type'] for t in layers.values()
+         if 'helix' in t['type'].__name__.lower()]

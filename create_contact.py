@@ -3,218 +3,112 @@
 from caeModules import regionToolset
 from abaqusConstants import * # type: ignore
 from set_dados_gerais import names
-from set_camadas import layers, obter_chave_ordenacao, cilindros_ortotropicos, cilindros_shell
-from numpy import sqrt
+from set_camadas import layers, obter_chave_ordenacao, cylinder
 from create_analysis import create_analysis
 
-def contact_props(model, nome_contato, tension = False):
+def contact_props(model, nome_contato, friction = False):
+    """
+    Define as propriedades de contato com e sem atrito.
+    """
     contact_prop = model.ContactProperty(nome_contato)
-    contact_prop.NormalBehavior(
-        pressureOverclosure=HARD,
-        allowSeparation=ON
-    )
-    if tension:
-        contact_prop.TangentialBehavior(
-        formulation=PENALTY,
-        directionality=ISOTROPIC,
-        slipRateDependency=OFF,
-        pressureDependency=OFF,
-        temperatureDependency=OFF,
-        dependencies=0,
-        table=((0.1,),),
-        shearStressLimit=None,
-        maximumElasticSlip=FRACTION,
-        fraction=0.005,
-        elasticSlipStiffness=None)
+    contact_prop.NormalBehavior(pressureOverclosure=HARD,allowSeparation=ON)
+    if friction:
+        contact_prop.TangentialBehavior(formulation=PENALTY,directionality=ISOTROPIC,slipRateDependency=OFF,pressureDependency=OFF,temperatureDependency=OFF,dependencies=0,table=((0.1,),),shearStressLimit=None,maximumElasticSlip=FRACTION,fraction=0.005,elasticSlipStiffness=None)
     else:
-        contact_prop.TangentialBehavior(
-            formulation=FRICTIONLESS
-        )
-def create_contact(model, step = 'Initial'):
-    print("====================== Contato =========================")
-    assembly = model.rootAssembly
-    contatos = {
-        "ContatoTension": True,
-        "ContatoShell": False
-    }
-    for item, values in contatos.items():
-        contact_props(model, item, values)
+        contact_prop.TangentialBehavior(formulation=FRICTIONLESS)
 
-    for key in layers.keys():
-        if "Armour" not in key:
-            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
-            model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
-
-    surf_1 = [x for x in list(assembly.surfaces.keys()) if x.endswith('1')]
-    surf_1.append(f'Surf-InnerArmour-1')
-    # surf_1.append(f'Surf-OuterArmour-1')
-    surf_1 = sorted(surf_1, key=obter_chave_ordenacao)
-    surf_2 = [x for x in list(assembly.surfaces.keys()) if x.endswith('2')]
-    surf_2.append(f'Surf-InnerArmour-2')
-    # surf_2.append(f'Surf-OuterArmour-2')
-    surf_2 = sorted(surf_2, key=obter_chave_ordenacao)
-
-    for camada_1, camada_2 in zip(surf_1, surf_2[1:]):
-        try:
-            if 'innerarmour' in camada_1.lower():
-                for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "innerarmour" in x.lower()], 1):
-                    instancia = assembly.instances[nome_instancia]
-                    region = regionToolset.Region(edges=instancia.edges)
-                    model.SurfaceToSurfaceContactExp(
-                        name=f'Contato_{camada_1}_{camada_2}-{i}',
-                        createStepName=step,
-                        main=assembly.surfaces[camada_2],
-                        secondary=region,
-                        sliding=FINITE,
-                        interactionProperty=list(contatos.keys())[0],
-                        mechanicalConstraint=KINEMATIC
-                    )
-            elif 'innerarmour' in camada_2.lower():
-                for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "innerarmour" in x.lower()], 1):
-                    instancia = assembly.instances[nome_instancia]
-                    region = regionToolset.Region(edges=instancia.edges)
-                    model.SurfaceToSurfaceContactExp(
-                        name=f'Contato_{camada_1}_{camada_2}-{i}',
-                        createStepName=step,
-                        main=assembly.surfaces[camada_1],
-                        secondary=region,
-                        sliding=FINITE,
-                        interactionProperty=list(contatos.keys())[0],
-                        mechanicalConstraint=KINEMATIC
-                    )
-            elif 'outerarmour' in camada_1.lower():
-                    for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "outerarmour" in x.lower()], 1):
-                        instancia = assembly.instances[nome_instancia]
-                        region = regionToolset.Region(edges=instancia.edges)
-                        model.SurfaceToSurfaceContactExp(
-                            name=f'Contato_{camada_1}_{camada_2}-{i}',
-                            createStepName=step,
-                            main=assembly.surfaces[camada_2],
-                            secondary=region,
-                            sliding=FINITE,
-                            interactionProperty=list(contatos.keys())[0],
-                            mechanicalConstraint=KINEMATIC
-                        )
-            elif 'outerarmour' in camada_2.lower():
-                for i, nome_instancia in enumerate([x for x in assembly.instances.keys() if "outerarmour" in x.lower()], 1):
-                    instancia = assembly.instances[nome_instancia]
-                    region = regionToolset.Region(edges=instancia.edges)
-                    model.SurfaceToSurfaceContactExp(
-                        name=f'Contato_{camada_1}_{camada_2}-{i}',
-                        createStepName=step,
-                        main=assembly.surfaces[camada_1],
-                        secondary=region,
-                        sliding=FINITE,
-                        interactionProperty=list(contatos.keys())[0],
-                        mechanicalConstraint=KINEMATIC
-                    )
-            else:
-                print(f"Contato entre {camada_1} e {camada_2}.\n")
-                model.SurfaceToSurfaceContactExp(
-                    name=f'Contato_{camada_1}_{camada_2}',
-                    createStepName=step,
-                    main=assembly.surfaces[camada_1],
-                    secondary=assembly.surfaces[camada_2],
-                    sliding=FINITE,
-                    interactionProperty=list(contatos.keys())[1],
-                    mechanicalConstraint=KINEMATIC
-                )
-        except Exception as e:
-            print(f"{e.__class__.__name__}: {str(e)}.\n")
-
-def create_surfaces_armour(model, nome_instancia, lado):
+def create_solid_helix_surfaces(model, nome_instancia, external=True):
+    """
+    Cria objetos do tipo surface no abaqus para definir as superfícies internas e externas das armaduras sólidas.
+    Dessa forma, é possível estabelecer contatos com as outras camadas. Retorna o nome da superfície criada.
+    """
     assembly = model.rootAssembly
     instancia = assembly.instances[nome_instancia]
     internas, externas = list(), list()
-    for face in instancia.faces:
+    for face in instancia.part.faces:
         if face.getNormal()[1]==0:
             dot = sum(p * n for p, n in zip(face.pointOn[0], face.getNormal()))
             if dot>0:
                 externas.append(instancia.faces[face.index:face.index+1])
             else:
                 internas.append(instancia.faces[face.index:face.index+1])
-    if lado == "Externo":
-        model.rootAssembly.Surface(side1Faces=externas, name=f'Surf-{nome_instancia}-1')
-    elif lado == "Interno":
-        model.rootAssembly.Surface(side1Faces=internas, name=f'Surf-{nome_instancia}-2')
+    faces, suffix = (externas, "Ext") if external else (internas, "Int")
+    surface_name = f"Surf-{nome_instancia}-{suffix}"
 
-def create_contact_surfaces(model, nome_contato = "GeneralContact"):
-    print(f"\n============================ {'Contato': ^24} ============================\n")
+    model.rootAssembly.Surface(side1Faces=faces, name=surface_name)
+
+    return surface_name
+
+def create_contact_surfaces(model):
+    """
+    Cria objetos do tipo surface no abaqus para definir as superfícies internas e externas de todas
+    as camadas e as organiza em duas listas separadas e ordenadas de acordo com o dicionário de
+    camadas. Retorna as listas.
+    """
     assembly = model.rootAssembly
-    contatos = {
-        "ContatoTension": True,
-        "ContatoShell": False
-    }
-    for item, values in contatos.items():
-        contact_props(model, item, values)
+    externals, internals = {}, {}
 
     for key, values in layers.items():
-        if "Armour" not in key and values['type'] not in (cilindros_ortotropicos, cilindros_shell):
-            instancia = assembly.instances[key]
-            internas, externas = list(), list()
-            for face in instancia.faces:
-                normal = face.getNormal()
-                if abs(normal[0]) > 0.99:
-                    continue
-                if abs(normal[1]) < 1e-6:
-                    dot = sum(p * n for p, n in zip(face.pointOn[0], normal))
-                    if dot > 0:
-                        externas.append(instancia.faces[face.index:face.index+1])
-                    else:
-                        internas.append(instancia.faces[face.index:face.index+1])
-            model.rootAssembly.Surface(side1Faces=externas, name=f'Surf-{key}-1')
-            model.rootAssembly.Surface(side1Faces=internas, name=f'Surf-{key}-2')
-        elif values['type'] in (cilindros_ortotropicos, cilindros_shell):
-            model.rootAssembly.Surface(side1Faces=assembly.instances[key].faces, name=f'Surf-{key}-1')
-            model.rootAssembly.Surface(side2Faces=assembly.instances[key].faces, name=f'Surf-{key}-2')
+        if issubclass(values['type'], cylinder):
+            ext, inte = f'Surf-{key}-Ext', f'Surf-{key}-Int'
+            faces = assembly.instances[key].faces
+            model.rootAssembly.Surface(side1Faces=faces, name=ext)
+            model.rootAssembly.Surface(side2Faces=faces, name=inte)
+            externals[ext], internals[inte] = values['type'], values['type']
+        else:
+            for instance_name in (x for x in assembly.instances.keys() if key.lower() in x.lower()):
+                externals[create_solid_helix_surfaces(model, instance_name, True)] = values['type']
+                internals[create_solid_helix_surfaces(model, instance_name, False)] = values['type']
+    
+    ext, inte = list(externals.items()), list(internals.items())
+    return ext, inte
 
-    surf_1 = [x for x in list(assembly.surfaces.keys()) if x.endswith('1')]
-    surf_1.append(f'Surf-InnerArmour-1')
-    surf_1.append(f'Surf-OuterArmour-1')
-    surf_1 = sorted(surf_1, key=obter_chave_ordenacao)
-    surf_2 = [x for x in list(assembly.surfaces.keys()) if x.endswith('2')]
-    surf_2.append(f'Surf-InnerArmour-2')
-    surf_2.append(f'Surf-OuterArmour-2')
-    surf_2 = sorted(surf_2, key=obter_chave_ordenacao)
-
+def create_contact_initialization(model, nome_contato, externals, internals):
+    """
+    Cria uma inicialização das superfícies de contato do tipo 'Interference' com o objetivo de
+    ajustar as posições dos nós antes da simulação.
+    """
+    assembly = model.rootAssembly
+    model.ExpInitialization(name='Contact_Initialization', overclosureType=INTERFERENCE)
     assignments = []
-
-    for camada_1, camada_2 in zip(surf_1, surf_2[1:]):
-        try:
-            if 'innerarmour' in camada_1.lower():
-                for nome_instancia in [x for x in assembly.instances.keys() if "innerarmour" in x.lower()]:
-                    create_surfaces_armour(model, nome_instancia, "Externo")
-                    assignments.append((assembly.surfaces["Surf-"+nome_instancia+"-1"], assembly.surfaces[camada_2], "Contact_Initialization"))
-            elif 'innerarmour' in camada_2.lower():
-                for nome_instancia in [x for x in assembly.instances.keys() if "innerarmour" in x.lower()]:
-                    create_surfaces_armour(model, nome_instancia, "Interno")
-                    assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-2"],"Contact_Initialization"))
-            elif 'outerarmour' in camada_1.lower():
-                for nome_instancia in [x for x in assembly.instances.keys() if "outerarmour" in x.lower()]:
-                    create_surfaces_armour(model, nome_instancia, "Externo")
-                    assignments.append((assembly.surfaces["Surf-"+nome_instancia+"-1"], assembly.surfaces[camada_2], "Contact_Initialization"))
-            elif 'outerarmour' in camada_2.lower():
-                for nome_instancia in [x for x in assembly.instances.keys() if "outerarmour" in x.lower()]:
-                    create_surfaces_armour(model, nome_instancia, "Interno")
-                    assignments.append((assembly.surfaces[camada_1], assembly.surfaces["Surf-"+nome_instancia+"-2"],"Contact_Initialization"))
-            else:
-                assignments.append((assembly.surfaces[camada_1], assembly.surfaces[camada_2], "Contact_Initialization"))
-        except Exception as e:
-            print(f"{e.__class__.__name__}: {str(e)}.\t Camadas: {camada_1} e {camada_2}.\n")
-        print(f"Contato entre {camada_1} e {camada_2} criado.\n")
+    for i, (surface1, type1) in enumerate(externals):
+        if issubclass(type1, cylinder):
+            for surface2, type2 in internals[i+1:]:
+                if issubclass(type2, cylinder):
+                    break
+                assignments.append((assembly.surfaces[surface1], assembly.surfaces[surface2], "Contact_Initialization"))
+                print(f"Inicialização das superfícies {surface1} e {surface2}")
+        else:
+            for surface2, type2 in internals[i+1:]:
+                if issubclass(type2, cylinder):
+                    assignments.append((assembly.surfaces[surface1], assembly.surfaces[surface2], "Contact_Initialization"))
+                    print(f"Inicialização das superfícies {surface1} e {surface2}")
+                    break
     model.interactions[nome_contato].initializationAssignments.appendInStep(stepName='Initial', assignments=tuple(assignments))
 
+def select_frictionless_layers(model, externals, internals):
+    """
+    Seleciona as camadas do tipo 'cylinder' para criação de um contato sem atrito.
+    Retorna uma tupla de tuplas com as camadas selecionadas.
+    """
+    assembly = model.rootAssembly
+    selected = []
+    for (surface1, type1), (surface2, type2) in zip(externals, internals[1:]):
+        if any(not issubclass(t, cylinder) for t in (type1, type2)):
+            continue
+        selected.append((assembly.surfaces[surface1], assembly.surfaces[surface2], "ContactFrictionless"))
+    return tuple(selected)
+
 def create_general(model, passo, step='Initial'):
-    contatos = {
-        "ContatoTension": True,
-        "ContatoShell": False
-    }
-    nome_contato = 'GeneralContact'
+    print(f"\n================================ {'Contato': ^24} ================================\n")
+    contatos = {"ContactFriction": True, "ContactFrictionless": False}
     for item, values in contatos.items():
         contact_props(model, item, values)
-    model.ContactExp(name=nome_contato, createStepName=step, contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[1]),))
-    model.ExpInitialization(name='Contact_Initialization', overclosureType=INTERFERENCE)
-    create_contact_surfaces(model)
+    model.ContactExp(name='Initial_contact', createStepName=step, contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[1]),))
     create_analysis(model, passo)
-    model.interactions[nome_contato].deactivate(names['Step_Bending'])
-    model.ContactExp(name=f"{nome_contato}-2", createStepName=names['Step_Bending'], contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[0]),))
+    model.interactions['Initial_contact'].deactivate(names['Step_Loading'])
+    ext, inte = create_contact_surfaces(model)
+    create_contact_initialization(model, 'Initial_contact', ext, inte)
+    frictionless_layers = select_frictionless_layers(model, ext, inte)
+    model.ContactExp(name='Simulation_contact',
+                     createStepName=names['Step_Loading'], contactPropertyAssignments=((GLOBAL, SELF, list(contatos.keys())[0]),) + frictionless_layers)

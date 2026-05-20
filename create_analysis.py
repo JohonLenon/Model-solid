@@ -29,29 +29,32 @@ def create_amplitude(model, name, data, smooth=True):
     return name
 
 def apply_tension(model, assembly, timePeriod, passo, regiao, displacement):
-    model.ExplicitDynamicsStep(name= names['Step_Tension'], previous='Initial', timePeriod=timePeriod, timeIncrementationMethod=AUTOMATIC_GLOBAL)
+    displacement = displacement*passo/100
+    model.ExplicitDynamicsStep(name= names['Step_Loading'], previous='Initial', timePeriod=timePeriod, timeIncrementationMethod=AUTOMATIC_GLOBAL)
     amplitude = create_amplitude(model, 'Amplitude', ((0,0),(1,1),(3,-1),(4,0))) if loading.get("Hysteresis") else create_amplitude(model, 'Amplitude', ((0,0),(1,1),))
-    model.DisplacementBC(name="endB_Tension", createStepName= names['Step_Tension'], region=regiao, u1=UNSET, u2=displacement, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=amplitude)
+    model.DisplacementBC(name="endB_Tension", createStepName= names['Step_Loading'], region=regiao, u1=UNSET, u2=displacement, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=amplitude)
 
-    model.FieldOutputRequest(name='F-Output-Tension', createStepName=names['Step_Tension'], variables=('RM', 'UR'), region=assembly.sets['Regiao-RPEndB'])
-    model.FieldOutputRequest(name='F-Output-TVisualization', createStepName=names['Step_Tension'], variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
-    model.HistoryOutputRequest(name='H-Output-Tension', createStepName=names['Step_Tension'], variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
+    model.FieldOutputRequest(name='F-Output-Tension', createStepName=names['Step_Loading'], variables=('RM', 'UR'), region=assembly.sets['Regiao-RPEndB'])
+    model.FieldOutputRequest(name='F-Output-TVisualization', createStepName=names['Step_Loading'], variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
+    model.HistoryOutputRequest(name='H-Output-Tension', createStepName=names['Step_Loading'], variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
     model.fieldOutputRequests['F-Output-Tension'].setValues(numIntervals=400,)
     model.fieldOutputRequests['F-Output-TVisualization'].setValues(numIntervals=10,)
 
 def apply_bending(model, assembly, timePeriod, passo, regiao, curvature):
-    rotation = passo*curvature
-    model.ExplicitDynamicsStep(name= names['Step_Bending'], previous='Initial', timePeriod=timePeriod, timeIncrementationMethod=AUTOMATIC_GLOBAL)
-    amplitude = create_amplitude(model, 'Amplitude', ((0,0),(1,1),(3,-1),(4,0))) if loading.get("Hysteresis") else create_amplitude(model, 'Amplitude', ((0,0),(1,1),))
-    model.DisplacementBC(name="endB_Bending", createStepName= names['Step_Bending'], region=regiao, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=rotation, amplitude=amplitude)
+    rotation = (passo * curvature) / 1000 if (passo * curvature) > 1 else (passo * curvature)
+    model.ExplicitDynamicsStep(name= names['Step_Loading'], previous='Initial', timePeriod=timePeriod, timeIncrementationMethod=AUTOMATIC_GLOBAL)
+    amplitude = create_amplitude(model, 'Amplitude', ((0,0),(timePeriod,1),(3*timePeriod,-1),(4*timePeriod,0))) if loading.get("Hysteresis") else create_amplitude(model, 'Amplitude', ((0,0),(timePeriod,1),))
+    model.DisplacementBC(name="endB_Bending", createStepName= names['Step_Loading'], region=regiao, u1=UNSET, u2=UNSET, u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=rotation, amplitude=amplitude)
 
-    model.FieldOutputRequest(name='F-Output-Bending', createStepName=names['Step_Bending'], variables=('RM', 'UR'), region=assembly.sets['Regiao-RPEndB'])
-    model.FieldOutputRequest(name='F-Output-BVisualization', createStepName=names['Step_Bending'], variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
-    model.HistoryOutputRequest(name='H-Output-Bending', createStepName=names['Step_Bending'], variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
-    model.fieldOutputRequests['F-Output-Bending'].setValues(numIntervals=400,)
-    model.fieldOutputRequests['F-Output-BVisualization'].setValues(numIntervals=10,)
+    model.FieldOutputRequest(name='F-Output-EndA', createStepName=names['Step_Loading'], variables=('RM', 'UR'), region=assembly.sets['Regiao-RPEndA'])
+    model.FieldOutputRequest(name='F-Output-EndB', createStepName=names['Step_Loading'], variables=('RM', 'UR'), region=assembly.sets['Regiao-RPEndB'])
+    model.FieldOutputRequest(name='F-Output-BVisualization', createStepName=names['Step_Loading'], variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
+    model.HistoryOutputRequest(name='H-Output-Bending', createStepName=names['Step_Loading'], variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
+    model.fieldOutputRequests['F-Output-EndA'].setValues(numIntervals=400,)
+    model.fieldOutputRequests['F-Output-EndB'].setValues(numIntervals=400,)
+    model.fieldOutputRequests['F-Output-BVisualization'].setValues(numIntervals=50,)
 
-def define_tension(pressure, external = True):
+def define_stress(pressure, external = True):
     if external:
         mid_diameter, thickness = (list(layers.values())[-1]["mid_diameter"], list(layers.values())[-1]["thickness"])
         radius = (mid_diameter+thickness)/2
@@ -63,20 +66,20 @@ def define_tension(pressure, external = True):
     return tension if external else -tension
 
 def apply_external_pressure(model, assembly, pressure):
-    tension = define_tension(pressure=pressure, external=True)
+    tension = define_stress(pressure=pressure, external=True)
     ultima_instancia = assembly.instances[next(reversed(assembly.instances.keys()))]
     regiao_ultima = ultima_instancia.sets[ultima_instancia.sets.keys()[0]]
     model.Stress(name='Tensao externa', region=regiao_ultima, distributionType=UNIFORM, sigma11=tension, sigma22=0.0, sigma12=0.0, sigma33=None, sigma13=None, sigma23=None)
 
 def apply_internal_pressure(model, assembly, pressure):
-    tension = define_tension(pressure=pressure, external=False)
+    tension = define_stress(pressure=pressure, external=False)
     segunda_instancia = assembly.instances[assembly.instances.keys()[1]]
     regiao_segunda = segunda_instancia.sets[segunda_instancia.sets.keys()[0]]
     model.Stress(name='Tensao interna', region=regiao_segunda, distributionType=UNIFORM, sigma11=tension, sigma22=0.0, sigma12=0.0, sigma33=None, sigma13=None, sigma23=None)
 
 def create_analysis(model, passo):
     assembly = model.rootAssembly
-    periodoAnalise = 4 if loading.get("Hysteresis") else 1
+    periodoAnalise = 4 if loading.get("Hysteresis") else 0.1
     
     regiao_refEndA = create_coupling(model, assembly, 'RPEndA', passo)
     regiao_refEndB = create_coupling(model, assembly, 'RPEndB', passo, origin=False)

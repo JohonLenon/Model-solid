@@ -34,7 +34,7 @@ def reload_modules(exclude=("main",)):
 reload_modules()
 
 from set_dados_gerais import names, model_length
-from set_camadas import layers, tension_armour, pitch
+from set_camadas import layers, solid_helix, pitch
 from create_contact import create_general
 
 nome_modelo = names["Model"]
@@ -47,16 +47,16 @@ del mdb.models['Model-1']
 s = model.ConstrainedSketch(name='rect', sheetSize=200.0)
 
 for name, layer in layers.items():
-    if layer["type"] == tension_armour:
+    if layer["type"] == solid_helix:
         layer["pitch"] = pitch(layer['mid_diameter']/2, layer['lay_angle'])
         layer["length"] = layer['pitch']
-passo = model_length*min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == tension_armour))
-passo = min(math.ceil(passo/(layer['base']/tan(radians(layer['lay_angle']))))*(layer['base']/tan(radians(layer['lay_angle']))) for layer in layers.values() if layer["type"] == tension_armour)
+passo = model_length*min((abs(layer['pitch']) for layer in layers.values() if layer["type"] == solid_helix))
+passo = min(math.ceil(passo/(layer['base']/tan(radians(layer['lay_angle']))))*(layer['base']/tan(radians(layer['lay_angle']))) for layer in layers.values() if layer["type"] == solid_helix)
 for name, layer in layers.items():
-    if layer["type"] == tension_armour:
+    if layer["type"] == solid_helix:
         layer["length"] = passo
 for name, layer in layers.items():
-    if layer["type"] != tension_armour:
+    if layer["type"] != solid_helix:
         layer["pitch"]=passo
 
 for name, layer in layers.items():

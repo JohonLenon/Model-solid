@@ -2,16 +2,16 @@
 
 names = {
     "Model": "ModeloRiser",
-    "Step_Bending": "Step_Explicit",
+    "Step_Loading": "Step_Explicit",
 }
 
 model_length = 2 #pitches
 
 loading = {
-    "Tension": 0,
-    "Internal_pressure": 30,
-    "External_pressure": 1,
-    "Curvature": 1,
+    "Tension": 0, #def%
+    "Internal_pressure": 0, #MPa
+    "External_pressure": 1, #MPa
+    "Curvature": 1, #1/m
     "Hysteresis": False
 }
 
