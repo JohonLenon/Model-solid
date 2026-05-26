@@ -1,3 +1,5 @@
+Versão 2026-05-26: Alteração da estrutura para classes e centralização em um arquivo structures.
+
 Versão 2026-05-07: Generalização do código e segmentação em funções.
 
 Versão 2026-03-06: Alteração do método da espessura equivalente para o método do laminado equivalente.

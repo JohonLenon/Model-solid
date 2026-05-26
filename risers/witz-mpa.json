@@ -2,7 +2,7 @@
     "InterlockedCarcass": {
         "type": "orthotropic_cylinder",
         "name": "InterlockedCarcass",
-        "pitch": null,
+        "length": null,
         "mid_diameter": 66.7,
         "thickness": 3.5,
         "name_material": "AISI304",
@@ -18,9 +18,9 @@
     },
 
     "PressureSheath": {
-        "type": "shell_cylinder",
+        "type": "isotropic_cylinder",
         "name": "PressureSheath",
-        "pitch": null,
+        "length": null,
         "mid_diameter": 75.15,
         "thickness": 4.95,
         "name_material": "Grilamid",
@@ -32,7 +32,7 @@
     "PressureReinforcement": {
         "type": "orthotropic_cylinder",
         "name": "PressureReinforcement",
-        "pitch": null,
+        "length": null,
         "mid_diameter": 86.3,
         "thickness": 6.2,
         "name_material": "FI15",
@@ -48,9 +48,9 @@
     },
 
     "InnerAntiFrictionTape": {
-        "type": "shell_cylinder",
+        "type": "isotropic_cylinder",
         "name": "InnerAntiFrictionTape",
-        "pitch": null,
+        "length": null,
         "mid_diameter": 94,
         "thickness": 1.5,
         "name_material": "Rilsan",
@@ -77,9 +77,9 @@
     },
 
     "OuterAntiFrictionTape": {
-        "type": "shell_cylinder",
+        "type": "isotropic_cylinder",
         "name": "OuterAntiFrictionTape",
-        "pitch": null,
+        "length": null,
         "mid_diameter": 103,
         "thickness": 1.5,
         "name_material": "Rilsan",
@@ -106,9 +106,9 @@
     },
 
     "FabricTape": {
-        "type": "shell_cylinder",
+        "type": "isotropic_cylinder",
         "name": "FabricTape",
-        "pitch": null,
+        "length": null,
         "mid_diameter": 111,
         "thickness": 0.5,
         "name_material": "HDPE",
