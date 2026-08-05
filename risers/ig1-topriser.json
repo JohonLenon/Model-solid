@@ -1,0 +1,243 @@
+{
+    "CarcacaInterna": {
+        "type": "orthotropic_cylinder",
+        "name": "CarcacaInterna",
+        "length": null,
+        "mid_diameter": 158.4E-3,
+        "thickness": 6E-3,
+        "name_material": "DUPLEX 2205",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 1,
+        "Ix": 199.4E-12,
+        "Iy": 5709E-12,
+        "A": 63.19E-6,
+        "J": 0,
+        "lay_angle": 87.9
+    },
+
+    "VedacaoInterna": {
+        "type": "isotropic_cylinder",
+        "name": "VedacaoInterna",
+        "length": null,
+        "mid_diameter": 175.7E-3,
+        "thickness": 11.3E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "ArmaduraTetaClip": {
+        "type": "orthotropic_cylinder",
+        "name": "ArmaduraTetaClip",
+        "length": null,
+        "mid_diameter": 201E-3,
+        "thickness": 14E-3,
+        "name_material": "Carbon Steel",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 1,
+        "Ix": 5814E-12,
+        "Iy": 23280E-12,
+        "A": 354.8E-6,
+        "J": 0,
+        "lay_angle": 87.3
+    },
+
+    "ArmaduraSpiral": {
+        "type": "orthotropic_cylinder",
+        "name": "ArmaduraSpiral",
+        "length": null,
+        "mid_diameter": 222.5E-3,
+        "thickness": 7.5E-3,
+        "name_material": "Carbon Steel",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 2,
+        "Ix": 527.3E-12,
+        "Iy": 2109E-12,
+        "A": 112.5E-6,
+        "J": 1449E-12,
+        "lay_angle": 87.5
+    },
+
+    "FitaAntidesgaste1": {
+        "type": "isotropic_cylinder",
+        "name": "FitaAntidesgaste1",
+        "length": null,
+        "mid_diameter": 231.5E-3,
+        "thickness": 1.5E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "ArmaduraDeTracao1": {
+        "type": "solid_helix",
+        "name": "ArmaduraDeTracao1",
+        "pitch": null,
+        "mid_diameter": 239E-3,
+        "thickness": 6E-3,
+        "name_material": "Carbon Steel",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 46,
+        "base": 14E-3,
+        "revolve_direction": "OFF",
+        "lay_angle": 25,
+        "length": 0
+    },
+
+    "FitaAntidesgaste2": {
+        "type": "isotropic_cylinder",
+        "name": "FitaAntidesgaste2",
+        "length": null,
+        "mid_diameter": 246.5E-3,
+        "thickness": 1.5E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "ArmaduraDeTracao2": {
+        "type": "solid_helix",
+        "name": "ArmaduraDeTracao2",
+        "pitch": null,
+        "mid_diameter": 254E-3,
+        "thickness": 6E-3,
+        "name_material": "Carbon Steel",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 49,
+        "base": 14E-3,
+        "revolve_direction": "ON",
+        "lay_angle": 25,
+        "length": 0
+    },
+
+    "FitaTextil1": {
+        "type": "isotropic_cylinder",
+        "name": "FitaTextil1",
+        "length": null,
+        "mid_diameter": 261.3E-3,
+        "thickness": 1.3E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "FitaAntidesgaste3": {
+        "type": "isotropic_cylinder",
+        "name": "FitaAntidesgaste3",
+        "length": null,
+        "mid_diameter": 264.1E-3,
+        "thickness": 1.5E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "ArmaduraDeTracao3": {
+        "type": "solid_helix",
+        "name": "ArmaduraDeTracao3",
+        "pitch": null,
+        "mid_diameter": 271.6E-3,
+        "thickness": 6E-3,
+        "name_material": "Carbon Steel",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 52,
+        "base": 14E-3,
+        "revolve_direction": "OFF",
+        "lay_angle": 25,
+        "length": 0
+    },
+
+    "FitaAntidesgaste4": {
+        "type": "isotropic_cylinder",
+        "name": "FitaAntidesgaste4",
+        "length": null,
+        "mid_diameter": 279.1E-3,
+        "thickness": 1.5E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "ArmaduraDeTracao4": {
+        "type": "solid_helix",
+        "name": "ArmaduraDeTracao4",
+        "pitch": null,
+        "mid_diameter": 286.6E-3,
+        "thickness": 6E-3,
+        "name_material": "Carbon Steel",
+        "young_modulus": 200E9,
+        "poisson": 0.3,
+        "density": 7.85e-9,
+        "n": 55,
+        "base": 14E-3,
+        "revolve_direction": "ON",
+        "lay_angle": 25,
+        "length": 0
+    },
+
+    "FitaAltaResistencia": {
+        "type": "isotropic_cylinder",
+        "name": "FitaAltaResistencia",
+        "length": null,
+        "mid_diameter": 295.87E-3,
+        "thickness": 3.27E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "VedacaoExterna1": {
+        "type": "isotropic_cylinder",
+        "name": "VedacaoExterna1",
+        "length": null,
+        "mid_diameter": 311.14E-3,
+        "thickness": 12E-3,
+        "name_material": "HDPE",
+        "young_modulus": 0.5E9,
+        "poisson": 0.46,
+        "density": 0.97e-9
+    },
+
+    "FitaTextil2": {
+        "type": "isotropic_cylinder",
+        "name": "FitaTextil2",
+        "length": null,
+        "mid_diameter": 325.53E-3,
+        "thickness": 2.39E-3,
+        "name_material": "RILSAN P40TL",
+        "young_modulus": 0.31E9,
+        "poisson": 0.4,
+        "density": 0.97e-9
+    },
+
+    "VedacaoExterna2": {
+        "type": "isotropic_cylinder",
+        "name": "VedacaoExterna2",
+        "length": null,
+        "mid_diameter": 337.62E-3,
+        "thickness": 9.7E-3,
+        "name_material": "HDPE",
+        "young_modulus": 0.5E9,
+        "poisson": 0.46,
+        "density": 0.97e-9
+    }
+}

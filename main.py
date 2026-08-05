@@ -10,7 +10,7 @@ sys.stdout = sys.__stdout__
 
 print("\n")
 
-def reload_modules(exclude=("main", "create_analysis", "create_contact")):
+def reload_modules(exclude=("main",)):
     """
     Recarrega automaticamente todos os módulos .py da pasta atual,
     exceto os listados em 'exclude'.
@@ -34,21 +34,45 @@ reload_modules()
 
 from structure import Model, layers
 
-f = Model(
-    name="Modelo_Frequencia",
-    cases=[
-        ("f", {}),
-    ]
-)
-f.build(number_pitches=2, model_length=0, layers=layers)
+# b = Model(
+#     name = "Modelo-Static",
+#     cases = [
+#         # ("ep",  {"pressure": 1E6, "timePeriod": 1}),
+#         ("bs",  {"curvature": 0.1, "timePeriod": 1}),
+#         # ("ips",  {"pressure": 30E6, "timePeriod": 1}),
+#         # ("is",  {"pressure": 1E6}),
+#         # ("tt",  {"deformation": 0.006, "timePeriod": 1}),
+#     ]
+# )
+# b.build(number_pitches=2, model_length=1, layers=layers)
 
-b = Model(
-    name = "Modelo_flexao",
+# b = Model(
+#     name = "Modelo-Settling",
+#     cases = [
+#         ("ss",  {"timePeriod": 1}),
+#     ]
+# )
+
+# job_name = b.build(number_pitches=1, model_length=0.5, layers=layers)
+
+# b = Model(
+#     name = "Frequencia",
+#     cases = [
+#         ("f", {})
+#     ]
+# )
+# b.build(number_pitches=1, model_length=0.5, layers=layers)
+
+c = Model(
+    name = "Modelo-Bending",
     cases = [
-        ("is",  {"pressure": 1E6}),
-        ("b",  {"curvature": 1, "timePeriod": 1}),
-    ]
+        # ("ep",  {"pressure": 2.406E6, "timePeriod": 0.01}),
+        # ("ip",  {"pressure": 0.7, "timePeriod": 0.3}),
+        ("b",  {"curvature": 1, "timePeriod": 0.2}),
+        # ("is",  {"pressure": 3.704E6}),
+    ],
+    # inp_job=job_name
 )
-b.build(number_pitches=2, model_length=0, layers=layers)
+c.build(number_pitches=1, model_length=0.5, layers=layers)
 
-session.viewports['Viewport: 1'].assemblyDisplay.geometryOptions.setValues(datumAxes=OFF, datumPlanes=OFF)
+# session.viewports['Viewport: 1'].assemblyDisplay.geometryOptions.setValues(datumAxes=OFF, datumPlanes=OFF)

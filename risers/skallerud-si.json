@@ -1,0 +1,139 @@
+{
+    "InterlockedCarcass": {
+        "type": "orthotropic_cylinder",
+        "name": "InterlockedCarcass",
+        "length": null,
+        "mid_diameter": 106.6E-3,
+        "thickness": 5.0E-3,
+        "name_material": "Steel",
+        "young_modulus": 210E9,
+        "poisson": 0.30,
+        "density": 7.85E3,
+        "n": 1,
+        "Ix": 77.37E-12,
+        "Iy": 1492E-12,
+        "A": 35.86E-6,
+        "J": 17.44E-12,
+        "lay_angle": 87.92
+    },
+
+    "InnerSheath": {
+        "type": "isotropic_cylinder",
+        "name": "InnerSheath",
+        "length": null,
+        "mid_diameter": 116.7E-3,
+        "thickness": 5.1E-3,
+        "name_material": "Polymer",
+        "young_modulus": 1.1E9,
+        "poisson": 0.35,
+        "density": 0.97E3
+    },
+
+    "PressureArmour": {
+        "type": "orthotropic_cylinder",
+        "name": "PressureArmour",
+        "length": null,
+        "mid_diameter": 128.2E-3,
+        "thickness": 6.4E-3,
+        "name_material": "Steel",
+        "young_modulus": 210E9,
+        "poisson": 0.30,
+        "density": 7.85E3,
+        "n": 1,
+        "Ix": 184.4E-12,
+        "Iy": 745.7E-12,
+        "A": 53.14E-6,
+        "J": 197.9E-12,
+        "lay_angle": 88.54
+    },
+
+    "InnerAntiWearTape": {
+        "type": "isotropic_cylinder",
+        "name": "InnerAntiWearTape",
+        "length": null,
+        "mid_diameter": 136.6E-3,
+        "thickness": 2.0E-3,
+        "name_material": "Polymer",
+        "young_modulus": 1.1E9,
+        "poisson": 0.35,
+        "density": 0.97E3
+    },
+
+    "InnerTensileArmour": {
+        "type": "solid_helix",
+        "name": "InnerTensileArmour",
+        "pitch": null,
+        "mid_diameter": 140.6E-3,
+        "thickness": 2.0E-3,
+        "name_material": "Steel",
+        "young_modulus": 210E9,
+        "poisson": 0.30,
+        "density": 7.85E3,
+        "n": 61,
+        "Ix": 3.333E-12,
+        "Iy": 20.83E-12,
+        "A": 10E-6,
+        "J": 9.960E-12,
+        "base": 5E-3,
+        "revolve_direction": "ON",
+        "lay_angle": -38,
+        "length": null
+    },
+
+    "OuterAntiWearTape": {
+        "type": "isotropic_cylinder",
+        "name": "OuterAntiWearTape",
+        "length": null,
+        "mid_diameter": 144.6E-3,
+        "thickness": 2.0E-3,
+        "name_material": "Polymer",
+        "young_modulus": 1.1E9,
+        "poisson": 0.35,
+        "density": 0.97E3
+    },
+
+    "OuterTensileArmour": {
+        "type": "solid_helix",
+        "name": "OuterTensileArmour",
+        "pitch": null,
+        "mid_diameter": 148.6E-3,
+        "thickness": 2.0E-3,
+        "name_material": "Steel",
+        "young_modulus": 210E9,
+        "poisson": 0.30,
+        "density": 7.85E3,
+        "n": 65,
+        "Ix": 3.333E-12,
+        "Iy": 20.83E-12,
+        "A": 10E-6,
+        "J": 9.960E-12,
+        "base": 5E-3,
+        "revolve_direction": "OFF",
+        "lay_angle": 38,
+        "length": null
+    },
+
+    "StructuralTape": {
+        "type": "isotropic_cylinder",
+        "name": "StructuralTape",
+        "length": null,
+        "mid_diameter": 150.9E-3,
+        "thickness": 0.3E-3,
+        "name_material": "Polymer",
+        "young_modulus": 1.1E9,
+        "poisson": 0.35,
+        "density": 0.97E3
+    },
+
+    "OuterSheath": {
+        "type": "isotropic_cylinder",
+        "name": "OuterSheath",
+        "length": null,
+        "mid_diameter": 157.2E-3,
+        "thickness": 6.0E-3,
+        "name_material": "Polymer",
+        "young_modulus": 1.1E9,
+        "poisson": 0.35,
+        "density": 0.97E3
+    }
+}
