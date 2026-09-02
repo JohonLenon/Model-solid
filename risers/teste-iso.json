@@ -1,0 +1,38 @@
+{
+    "Steel_tube1": {
+        "type": "isotropic_cylinder",
+        "name": "Steel_tube1",
+        "length": null,
+        "mid_diameter": 65.2E-3,
+        "thickness": 5E-3,
+        "name_material": "Steel",
+        "young_modulus": 200000E6,
+        "poisson": 0.3,
+        "density": 7.85E3
+    },
+
+    "PressureSheath": {
+        "type": "isotropic_cylinder",
+        "name": "PressureSheath",
+        "length": null,
+        "mid_diameter": 75.15E-3,
+        "thickness": 4.95E-3,
+        "name_material": "Grilamid",
+        "young_modulus": 284E6,
+        "poisson": 0.4,
+        "density": 0.97E3
+    },
+
+    "Steel_tube2": {
+        "type": "isotropic_cylinder",
+        "name": "Steel_tube2",
+        "length": null,
+        "mid_diameter": 85.1E-3,
+        "thickness": 5E-3,
+        "name_material": "Steel",
+        "young_modulus": 200000E6,
+        "poisson": 0.3,
+        "density": 7.85E3
+    }
+
+}

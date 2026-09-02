@@ -1,8 +1,9 @@
 from caeModules import mesh
 from abaqus import mdb, session
 from abaqusConstants import * # type: ignore
+import regionToolset
 from numpy import pi, sin, cos, tan, radians, array, diag, ceil, sqrt
-from math import asin
+from math import asin, isclose
 import json
 import re
 
@@ -19,10 +20,12 @@ def read_json(file):
     types = {
         "isotropic_cylinder": Isotropic_cylinder,
         "orthotropic_cylinder": Orthotropic_cylinder,
+        "cruz_cylinder": Cruz_cylinder,
         "orthotropic_cylinder_csv": Orthotropic_cylinder_csv,
         "solid_isotropic_cylinder": Solid_isotropic_cylinder,
         "solid_helix": Solid_helix,
-        "shell_helix": Shell_helix
+        "shell_helix": Shell_helix,
+        "beam_helix": Beam_helix
     }
     constantes = {
         "ON": ON,
@@ -70,8 +73,11 @@ class Model:
             "s": (Settling, Explicit_contact),
             "ss": (Static_settling, Standard_contact),
             "b": (Bending, Explicit_contact),
+            "bp": (Bending, Explicit_contact_pairs),
             "bes": (Bending, Surf_to_surf_Explicit_contact),
-            "bis": (Implicit_bending, Surf_to_surf_Static_contact),
+            "bis": (Implicit_bending, Standard_contact),
+            "bisp": (Implicit_bending, Standard_contact_pairs),
+            "biss": (Implicit_bending, Surf_to_surf_Static_contact),
             "bt": (Bending, Tied_contact),
             "bs": (Static_bending, Surf_to_surf_Static_contact),
             "sb": (Static_bending, Standard_contact),
@@ -81,10 +87,14 @@ class Model:
             "tt": (Static_tension, Tied_contact),
             "is": (Initial_state, None),
             "ip": (Internal_pressure, Explicit_contact),
-            "ips": (Internal_pressure, Surf_to_surf_Explicit_contact),
+            "ips": (Implicit_internal_pressure, Standard_contact),
+            "ipisp": (Implicit_internal_pressure, Standard_contact_pairs),
+            "ipiss": (Implicit_internal_pressure, Surf_to_surf_Static_contact),
             "ipt": (Internal_pressure, Tied_contact),
             "ep": (External_pressure, Explicit_contact),
-            "eps": (External_pressure, Surf_to_surf_Explicit_contact),
+            "epis": (Implicit_external_pressure, Standard_contact),
+            "episp": (Implicit_external_pressure, Standard_contact_pairs),
+            "episs": (Implicit_external_pressure, Surf_to_surf_Static_contact),
             "f": (Frequency, Standard_contact)
         }
         self.name = name
@@ -152,6 +162,8 @@ class Model:
         case_class, contact_class = self.cases[0][0]
         c = case_class(model, layers, model_length)
         ctc = contact_class(model, layers, self.objects) if contact_class is not None else None
+        # nameEndA_shell, endA_shell = c.create_coupling("endA", (0,0,0), 'shell')
+        # nameEndB_shell, endB_shell = c.create_coupling("endB", (0,model_length,0), 'shell')
         nameEndA, endA = c.create_coupling("endA", (0,0,0))
         nameEndB, endB = c.create_coupling("endB", (0,model_length,0))
 
@@ -207,8 +219,8 @@ class Cylinder:
         part.seedEdgeByNumber(edges=part.edges, number=c_seed)
         part.DatumPlaneByPrincipalPlane(principalPlane=XZPLANE,offset=0)
         part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[3])
-        # part.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE,offset=0)
-        # part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[5])
+        # part.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE,offset=self.length*0.85)
+        # part.PartitionFaceByDatumPlane(faces=part.faces, datumPlane=part.datums[7])
         processed = set()
         for edge in part.edges:
             if edge.getSize() < pi * self.radius:
@@ -223,12 +235,40 @@ class Cylinder:
         base, lay_angle = self.get_solid_helix_props(layers)
         if (base is not None) and (lay_angle is not None):
             self.ndl = int(self.length/((base)/sin(radians(lay_angle))))
+            # elem_len = max([a.getSize() for a in part.edges if a.getSize() > 2*pi*self.radius])/self.ndl
+            # datum_id = 7
+            # for i in range(1, 2):
+            #     part.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE,offset=10*elem_len*i)
+            #     part.PartitionFaceByDatumPlane(faces=part.faces,datumPlane=part.datums[datum_id])
+            #     datum_id += 2
+            #     part.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE,offset=self.length-10*elem_len*i)
+            #     part.PartitionFaceByDatumPlane(faces=part.faces,datumPlane=part.datums[datum_id])
+            #     datum_id += 2
             part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=self.ndl)
+            # for edge in part.edges:
+            #     if isclose(edge.getSize(), pi*self.radius, rel_tol=1e-6):
+            #         part.seedEdgeByNumber(edges=(edge,), number=int(c_seed/2))
+            #     elif edge.getSize() < pi*self.radius:
+            #         part.seedEdgeByNumber(edges=(edge,), number=10)
             # part.seedEdgeByBias(biasMethod=DOUBLE, endEdges=[a for a in part.edges if a.getSize()<2*pi*self.radius], ratio = 5, number=c_seed)
         else:
-            part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.length*250))
+            # elem_len = self.length/int(self.length*100)
+            # datum_id = 7
+            # for i in range(1, 2):
+            #     part.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE,offset=20*elem_len*i)
+            #     part.PartitionFaceByDatumPlane(faces=part.faces,datumPlane=part.datums[datum_id])
+            #     datum_id += 2
+            #     part.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE,offset=self.length-20*elem_len*i)
+            #     part.PartitionFaceByDatumPlane(faces=part.faces,datumPlane=part.datums[datum_id])
+            #     datum_id += 2
+            part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.length*100))
+            # for edge in part.edges:
+            #     if isclose(edge.getSize(), pi*self.radius, rel_tol=1e-6):
+            #         part.seedEdgeByNumber(edges=(edge,), number=int(c_seed/2))
+            #     elif edge.getSize() < pi*self.radius:
+            #         part.seedEdgeByNumber(edges=(edge,), number=1)
         part.setMeshControls(regions=part.faces, technique=STRUCTURED)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
         part.generateMesh()
         print(f"Malha da camada {self.name} criada.")
     def create_material(self, model):
@@ -379,9 +419,9 @@ class Orthotropic_cylinder(Cylinder):
             part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=self.ndl)
             # part.seedEdgeByBias(biasMethod=DOUBLE, endEdges=[a for a in part.edges if a.getSize()<2*pi*self.radius], ratio = 5, number=c_seed)
         else:
-            part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.length*250))
+            part.seedEdgeByNumber(edges=[a for a in part.edges if a.getSize()>2*pi*self.radius], number=int(self.length*100))
         part.setMeshControls(regions=part.faces, technique=STRUCTURED)
-        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4R,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
+        part.setElementType(regions=((part.faces,)), elemTypes=(mesh.ElemType(elemCode=S4,elemLibrary=EXPLICIT,hourglassControl=ENHANCED),))
         part.generateMesh()
         print(f"Malha da camada {self.name} criada.")
     def create_section(self, model, part):
@@ -475,7 +515,7 @@ class Orthotropic_cylinder_csv(Orthotropic_cylinder):
                 name              = f'Section_{self.name}',
                 stiffnessMatrix   = stiffnessMatrix,
                 useDensity        = ON,
-                density           = self.density*self.thickness,
+                density           = self.density*self.thickness/2,
         )
 
         region = part.Set(faces=part.faces, name=f'Set-{self.name}')
@@ -492,6 +532,77 @@ class Orthotropic_cylinder_csv(Orthotropic_cylinder):
         # )
         part.assignThickness(faces=part.faces, thickness=self.thickness)
         print(f"Seção de matriz ABD da camada {self.name} criada.")
+
+class Cruz_cylinder(Cylinder):
+    """
+    Representa uma camada de casca cilíndrica. Cria uma casca cilíndrica com malha estruturada e alinhada com as dimensões
+    dos fios da armadura de tração. Possui material linear elástico. Ao incluir no assembly é girada para corresponder ao
+    eixo da armadura de tração.
+
+    name            -   Nome da parte                       (input)
+    length          -   Comprimento do modelo em metros     (input)
+    mid_diameter    -   Diâmetro médio em metros            (input)
+    thickness       -   Espessura em metros                 (input)
+    name_material   -   Nome do material                    (input)
+    young_modulus   -   Módulo de elasticidade em Pa        (input)
+    poisson         -   Coeficiente de poisson              (input)
+    density         -   Densidade do material em kg/m³      (input)
+    """ 
+    def __init__(self, *, n, Ix, Iy, A, J, lay_angle, **kwargs):
+        super().__init__(**kwargs)
+        self.n = n
+        self.Ix = Ix
+        self.Iy = Iy
+        self.A = A
+        self.J = J
+        self.lay_angle = lay_angle
+    def create_material(self, model):
+        """
+        Cria um material elástico linear com módulo de elasticidade, poisson e densidade. A densidade é necessária
+        para a análise explícita.
+        """
+        try:
+            material = model.materials[self.name_material]
+        except:
+            Lp = pitch(self.radius, self.lay_angle)
+            t = sqrt(12*self.Ix/self.A)
+            K = 1
+            E1 = K * self.n*self.A / (Lp*t)*self.young_modulus
+            G12 = self.young_modulus / (2*(1+self.poisson))
+            eps = 1E-6
+            material = model.Material(name=self.name_material)
+            material.Elastic(type=LAMINA, table=((E1, eps*E1, self.poisson, G12, G12, G12),))
+            material.Density(table=((self.density,),))
+        print(f"Material {material.name} da camada {self.name} criado.")
+    def create_section(self, model, part):
+        """
+        Cria a seção de shell e associa ao material criado anteriormente. Importante atentar ao offsetType para a
+        utilização da superfície média devido ao diâmetro médio utilizado na definição da geometria.
+        """
+        t = sqrt(12*self.Ix/self.A)
+        model.HomogeneousShellSection(name=f'Section_{self.name}', material=self.name_material, thickness=t)
+        region = part.Set(faces=part.faces, name=f'Set-{self.name}')
+        part.SectionAssignment(region=region, sectionName=f'Section_{self.name}', offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_GEOMETRY)
+        # part.MaterialOrientation(
+        #             region           = region,
+        #             orientationType  = SYSTEM,
+        #             localCsys        = None,
+        #             axis             = AXIS_2,
+        #             angle            = 0.0,
+        #             stackDirection   = STACK_3,
+        #             fieldName        = '',
+        #             additionalRotationType = ROTATION_NONE,
+        #         )
+        part.assignThickness(faces=part.faces, thickness=self.thickness)
+    def build(self, model):
+        """
+        Constrói toda a camada.
+        """
+        part, sketch = self.create_geometry(model)
+        self.create_mesh(part)
+        self.create_material(model)
+        self.create_section(model, part)
+        self.create_assembly(model, part, sketch)
 
 class Solid_isotropic_cylinder(Cylinder):
     """
@@ -768,7 +879,7 @@ class Shell_helix(Helix):
         p.seedPart(size=int(self.length))
         p.setMeshControls(regions=p.faces, technique=STRUCTURED)
         # p.seedEdgeByNumber(edges=[a for a in p.edges if a.getSize()>comprimento_minimo], number=int(self.length/(self.base/sin(radians(self.lay_angle))))) # Conferir generalidade
-        p.setElementType(regions=(p.faces,), elemTypes=(mesh.ElemType(elemCode=S4R, hourglassControl=ENHANCED),))
+        p.setElementType(regions=(p.faces,), elemTypes=(mesh.ElemType(elemCode=S4, hourglassControl=ENHANCED),))
         p.generateMesh()
         print(f"Malha da camada {self.name} criada.")
     def create_section(self, model, p):
@@ -808,31 +919,120 @@ class Shell_helix(Helix):
         self.create_section(model, p)
         self.create_assembly(model, p, extend_factor, sketch)
 
+class Beam_helix(Helix):
+    def __init__(self, *, lay_angle, n, base, revolve_direction, length = 0, **kwargs):
+        super().__init__(**kwargs)
+        self.lay_angle = abs(lay_angle)
+        self.n = n
+        self.base = base
+        self.revolve_direction = revolve_direction
+        self.length = length
+    def create_geometry(self, model):
+        print(f"\n================================ {self.name: ^24} ================================\n")
+        direction = 1 if self.revolve_direction == ON else -1
+        n_pontos = 1000
+        points = []
+        for i in range(n_pontos + 1):
+            t = float(i) / (self.pitch/self.length*n_pontos)
+            theta = direction * 2.0 * pi * t
+            x = self.radius * cos(theta)
+            y = self.pitch * t
+            z = self.radius * sin(theta)
+            points.append((x, y, z))
+        p = model.Part(name=self.name, dimensionality=THREE_D, type=DEFORMABLE_BODY)
+        p.WireSpline(points=tuple(points), mergeType=IMPRINT, meshable=ON)
+        p.setValues(geometryRefinement=EXTRA_FINE)
+        
+        for edge in p.edges:
+            x, y, z = edge.pointOn[0]
+
+            n1 = (x, 0.0, z)
+            norma = sqrt(n1[0]**2 + n1[2]**2)
+            n1 = (n1[0]/norma, 0.0, n1[2]/norma) if norma > 1e-9 else (1.0, 0.0, 0.0)
+
+            idx = edge.index
+            regiao = regionToolset.Region(edges=p.edges[idx:idx+1])
+            p.assignBeamSectionOrientation(region=regiao, method=N1_COSINES, n1=(1.0, 0.0, 0.0))
+        print(f"Geometria da camada {self.name} criada.")
+        return p
+    def create_mesh(self, p):
+        p.seedPart(size=t_seed)
+        # p.seedEdgeByNumber(edges=p.edges, number=int(self.length/(self.base/sin(radians(self.lay_angle)))))
+        p.seedEdgeByNumber(edges=p.edges, number=300)
+        p.setElementType(regions=(p.edges,), elemTypes=(mesh.ElemType(elemCode=B32),))
+        p.generateMesh()
+        print(f"Malha da camada {self.name} criada.")
+    def create_section(self, model, p):
+        # Cria seção e associa material
+        model.RectangularProfile(name=f'Perfil_{self.name}', a=self.base, b=self.thickness)
+        model.BeamSection(name=f'Section_{self.name_material}', integration=DURING_ANALYSIS, profile=f'Perfil_{self.name}', material=self.name_material, temperatureVar=LINEAR, consistentMassMatrix=False)
+        region = p.Set(edges=p.edges, name=f'Set-{self.name}')
+        p.SectionAssignment(region=region, sectionName=f'Section_{self.name_material}', offset=0.0, offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+    def create_assembly(self, model, p):
+        # Cria o assembly e as cópias
+        assembly = model.rootAssembly
+        instance_name = f'{self.name}-1'
+        assembly.Instance(name=instance_name, part=p, dependent=ON)
+        assembly.translate(instanceList=(instance_name,), vector=(0,self.length,0))
+        num_instances = self.n
+        angle_step = 360.0 / num_instances
+
+        for j in range(0, num_instances):
+            rotation_angle = j * angle_step
+            instance_rotated_name = f'{self.name}-{j+1}'
+            assembly.Instance(name=instance_rotated_name, part=p, dependent=ON)
+            assembly.rotate(instanceList=(instance_rotated_name,), axisPoint=(0, 0, 0), axisDirection=(0, 1, 0), angle=rotation_angle)
+        print(f"Assembly da camada {self.name} criado.") 
+    def build(self, model):
+        """
+        Constrói toda a camada.
+        """
+        p = self.create_geometry(model)
+        self.create_mesh(p)
+        self.create_material(model)
+        self.create_section(model, p)
+        self.create_assembly(model, p)
+
 class Analysis:
     def __init__(self, model, layers, model_length):
         self.model = model
         self.assembly = model.rootAssembly
         self.layers = layers
         self.model_length = model_length
-    def create_set(self, y):
+    def create_set(self, y, element= 'all'):
         selected_vertices, selected_edges = list(), list()
         for key, values in self.layers.items():
             inf_length = values['length']/10000
             for instance_name in (x for x in self.assembly.instances.keys() if key.lower() in x.lower()):
                 instance = self.assembly.instances[instance_name]
-                if issubclass(values['type'], Solid_helix):
+                # if issubclass(values['type'], Solid_helix) or issubclass(values['type'], Beam_helix):
+                if (element == 'solid' or element == 'all') and (issubclass(values['type'], Solid_helix) or issubclass(values['type'], Beam_helix)):
+                    # vertices = instance.nodes
+                    # selected_vertices.append(vertices.getByBoundingBox(yMin=y-self.model_length*0.2, yMax=y+self.model_length*0.2))
                     vertices = instance.vertices
                     selected_vertices.append(vertices.getByBoundingBox(yMin=y-inf_length, yMax=y+inf_length))
-                elif issubclass(values['type'], Cylinder):
-                    selected_edges.append(instance.edges.getByBoundingBox(yMin=y-inf_length, yMax=y+inf_length))
-        return self.assembly.Set(vertices=selected_vertices, edges=selected_edges, name=f'RegiaoY-{abs(int(1000*y))}')
-    def create_coupling(self, name, point):
-        end = self.create_set(point[1])
+                elif (element == 'shell' or element == 'all') and (issubclass(values['type'], Cylinder)):
+                    # selected_edges.append(instance.edges.getByBoundingBox(yMin=y-inf_length, yMax=y+inf_length))
+                    all_edges = instance.edges.getByBoundingBox(yMin=y-inf_length, yMax=y+inf_length)
+                    edges = [edge.pointOn for edge in all_edges if edge.getSize()>0.05]
+                    edges = instance.edges.findAt(*edges)
+                    selected_edges.append(edges)
+        if selected_vertices == [] and selected_edges == []:
+            return None
+        return self.assembly.Set(vertices=selected_vertices, edges=selected_edges, name=f'RegiaoY-{abs(int(1000*y))}-{element}')
+    def create_coupling(self, name, point, element='all'):
+        end = self.create_set(point[1], element)
         rp = self.assembly.ReferencePoint(point=point)
         ref = self.assembly.referencePoints[rp.id]
         rg_name = f'Regiao-{name}'
         regiao = self.assembly.Set(referencePoints=(ref,), name=rg_name)
-        self.model.Coupling(name=f'Coupling-{name}', surface=end, controlPoint=regiao, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC)#, ur1 = OFF, ur2 = OFF, ur3 = OFF)
+        if end == None:
+            return None
+        if element == 'solid':
+            self.model.Coupling(name=f'KinematicCoupling-{name}-{element}', surface=end, controlPoint=regiao, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC)#, ur1 = OFF, ur2 = OFF, ur3 = OFF)
+        else:
+            # self.model.Coupling(name=f'DistributingCoupling-{name}-{element}', surface=end, controlPoint=regiao, influenceRadius=WHOLE_SURFACE, couplingType=DISTRIBUTING, weightingMethod = CUBIC)#, ur1 = OFF, ur2 = OFF, ur3 = OFF)
+            self.model.Coupling(name=f'KinematicCoupling-{name}-{element}', surface=end, controlPoint=regiao, influenceRadius=WHOLE_SURFACE, couplingType=KINEMATIC)
         return (rg_name, regiao)
     def create_amplitude(self, name, data, smooth=True):
         if smooth:
@@ -887,22 +1087,30 @@ class Bending(Analysis):
 
 class Implicit_bending(Analysis):
     def build(self, endA, endB, previous, ext, inte, curvature, timePeriod, hysteresis = False):
-        self.step_name = "Step_Explict"
+        self.step_name = "Step_Implicit"
         nameEndA, regionEndA = endA
         nameEndB, regionEndB = endB
 
         rotation = self.model_length * curvature
-        self.model.ImplicitDynamicsStep(name= self.step_name, previous=previous, timePeriod=timePeriod)
+        self.model.ImplicitDynamicsStep(name= self.step_name, previous=previous, timePeriod=timePeriod, maxNumInc=10000, initialInc=timePeriod, maxInc=timePeriod, minInc=1E-7)
+        try:
+            self.model.boundaryConditions['endA']
+            self.model.boundaryConditions['endB']
+        except:
+            self.model.DisplacementBC(name="endA", createStepName= self.step_name, region=regionEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET)
+            self.model.DisplacementBC(name="endB", createStepName= self.step_name, region=regionEndB, u1=SET, u3=SET, ur1=SET, ur2=SET)
+
         amplitude = self.create_amplitude('Amplitude', ((0,0),(timePeriod,1),(3*timePeriod,-1),(4*timePeriod,0)))if hysteresis else self.create_amplitude('Amplitude', ((0,0),(timePeriod,1),))
-        self.model.DisplacementBC(name="endA_Bending", createStepName= self.step_name, region=regionEndA, ur3=-rotation/2, amplitude=amplitude)
-        self.model.DisplacementBC(name="endB_Bending", createStepName= self.step_name, region=regionEndB, ur3=rotation/2, amplitude=amplitude)
+        self.model.DisplacementBC(name="endA_Implicit_Bending", createStepName= self.step_name, region=regionEndA, ur3=-rotation/2, amplitude=amplitude)
+        self.model.DisplacementBC(name="endB_Implicit_Bending", createStepName= self.step_name, region=regionEndB, ur3=rotation/2, amplitude=amplitude)
 
         self.model.FieldOutputRequest(name='F-Output-EndA', createStepName=self.step_name, variables=('RM', 'UR'), region=self.assembly.sets[nameEndA])
         self.model.FieldOutputRequest(name='F-Output-EndB', createStepName=self.step_name, variables=('RM', 'UR'), region=self.assembly.sets[nameEndB])
-        # self.model.FieldOutputRequest(name='F-Output-Bending', createStepName=self.step_name, variables=('S','LE','U','V','A','RF','CSTRESS','CDISP','CSTATUS', 'EMSF'))
+        self.model.FieldOutputRequest(name='F-Output-Bending', createStepName=self.step_name, variables=('A','CDISP','CF','CSTRESS','LE','PE','PEEQ','PEMAG','RF','S','U','V'))
         # self.model.HistoryOutputRequest(name='H-Output-Bending', createStepName=self.step_name, variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
         self.model.fieldOutputRequests['F-Output-EndA'].setValues(numIntervals=400,)
         self.model.fieldOutputRequests['F-Output-EndB'].setValues(numIntervals=400,)
+        del self.model.fieldOutputRequests['F-Output-1']
         # self.model.fieldOutputRequests['F-Output-Bending'].setValues(numIntervals=50,)
 
 class Static_bending(Analysis):
@@ -912,7 +1120,13 @@ class Static_bending(Analysis):
         nameEndB, regionEndB = endB
 
         rotation = self.model_length * curvature
-        self.model.StaticStep(name= self.step_name, previous=previous, timePeriod=timePeriod, maxNumInc=1000, initialInc=0.1, minInc=1E-10, maxInc=1)
+        self.model.StaticStep(name= self.step_name, previous=previous, timePeriod=timePeriod, maxNumInc=1000, initialInc=0.1, minInc=1E-10, maxInc=0.1)
+        try:
+            self.model.boundaryConditions['endA']
+            self.model.boundaryConditions['endB']
+        except:
+            self.model.DisplacementBC(name="endA", createStepName= self.step_name, region=regionEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET)
+            self.model.DisplacementBC(name="endB", createStepName= self.step_name, region=regionEndB, u1=SET, u3=SET, ur1=SET, ur2=SET)
         amplitude = self.create_amplitude('Amplitude', ((0,0),(timePeriod,1),(3*timePeriod,-1),(4*timePeriod,0)))if hysteresis else self.create_amplitude('Amplitude', ((0,0),(timePeriod,1),))
         self.model.DisplacementBC(name="endA_Static-Bending", createStepName= self.step_name, region=regionEndA, ur3=-rotation/2, amplitude=amplitude)
         self.model.DisplacementBC(name="endB_Static-Bending", createStepName= self.step_name, region=regionEndB, ur3=rotation/2, amplitude=amplitude)
@@ -932,7 +1146,7 @@ class Frequency(Analysis):
         nameEndB, regionEndB = endB
         self.model.FrequencyStep(name=self.step_name, previous = previous, eigensolver = LANCZOS, numEigen = 2)
         self.model.DisplacementBC(name="endA", createStepName= self.step_name, region=regionEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET)
-        self.model.DisplacementBC(name="endB", createStepName= self.step_name, region=regionEndB, u1=SET, u3=SET, ur1=SET, ur2=SET)
+        self.model.DisplacementBC(name="endB", createStepName= self.step_name, region=regionEndB, u3=SET, ur1=SET, ur2=SET)
 
 class Initial_state(Analysis):
     def build(self, endA, endB, previous, ext, inte, pressure):
@@ -966,6 +1180,30 @@ class External_pressure(Analysis):
         # self.model.HistoryOutputRequest(name='H-Output-External_Pressure', createStepName=self.step_name, variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
         self.model.fieldOutputRequests['F-Output-External_Pressure'].setValues(numIntervals=50,)
 
+class Implicit_external_pressure(Analysis):
+    def build(self, endA, endB, previous, ext, inte, pressure, timePeriod):
+        self.step_name = "Step_External_Pressure"
+        nameEndA, regionEndA = endA
+        nameEndB, regionEndB = endB
+
+        self.model.ImplicitDynamicsStep(name= self.step_name, previous=previous, timePeriod=timePeriod, maxNumInc=10000, initialInc=timePeriod, maxInc=timePeriod, minInc=1E-7)
+        try:
+            self.model.boundaryConditions['endA']
+            self.model.boundaryConditions['endB']
+        except:
+            self.model.DisplacementBC(name="endA", createStepName= self.step_name, region=regionEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET)
+            self.model.DisplacementBC(name="endB", createStepName= self.step_name, region=regionEndB, u1=SET, u3=SET, ur1=SET, ur2=SET)
+        external_region = self.assembly.surfaces[ext[-1][0]]
+
+        amplitude = self.create_amplitude('Amplitude_external_pressure', ((0,0),(timePeriod,1),))
+
+        self.model.Pressure(name='External Pressure', createStepName=self.step_name, region = external_region, magnitude = pressure, amplitude=amplitude)
+
+        self.model.FieldOutputRequest(name='F-Output-External_Pressure', createStepName=self.step_name, variables=('A','CDISP','CF','CSTRESS','LE','PE','PEEQ','PEMAG','RF','S','U','V'))
+        self.model.HistoryOutputRequest(name='H-Output-External_Pressure', createStepName=self.step_name, variables=('ALLEN',))
+        # self.model.HistoryOutputRequest(name='H-Output-External_Pressure', createStepName=self.step_name, variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
+        # self.model.fieldOutputRequests['F-Output-External_Pressure'].setValues(numIntervals=50,)
+
 class Internal_pressure(Analysis):
     def build(self, endA, endB, previous, ext, inte, pressure, timePeriod):
         self.step_name = "Step_Internal_Pressure"
@@ -990,6 +1228,31 @@ class Internal_pressure(Analysis):
         self.model.HistoryOutputRequest(name='H-Output-Internal_Pressure', createStepName=self.step_name, variables=('ALLEN',))
         # self.model.HistoryOutputRequest(name='H-Output-Internal_Pressure', createStepName=self.step_name, variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
         self.model.fieldOutputRequests['F-Output-Internal_Pressure'].setValues(numIntervals=50,)
+
+class Implicit_internal_pressure(Analysis):
+    def build(self, endA, endB, previous, ext, inte, pressure, timePeriod):
+        self.step_name = "Step_Internal_Pressure"
+        nameEndA, regionEndA = endA
+        nameEndB, regionEndB = endB
+
+        self.model.ImplicitDynamicsStep(name= self.step_name, previous=previous, timePeriod=timePeriod, maxNumInc=10000, initialInc=timePeriod, maxInc=timePeriod, minInc=1E-7)
+        try:
+            self.model.boundaryConditions['endA']
+            self.model.boundaryConditions['endB']
+        except:
+            self.model.DisplacementBC(name="endA", createStepName= self.step_name, region=regionEndA, u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET)
+            self.model.DisplacementBC(name="endB", createStepName= self.step_name, region=regionEndB, u1=SET, u3=SET, ur1=SET, ur2=SET)
+
+        internal_region = self.assembly.surfaces[inte[1][0]]
+
+        amplitude = self.create_amplitude('Amplitude_internal_pressure', ((0,0),(timePeriod,1),))
+
+        self.model.Pressure(name='Internal Pressure', createStepName=self.step_name, region = internal_region, magnitude = pressure, amplitude = amplitude)
+
+        self.model.FieldOutputRequest(name='F-Output-Internal_Pressure', createStepName=self.step_name, variables=('A','CDISP','CF','CSTRESS','LE','PE','PEEQ','PEMAG','RF','S','U','V'))
+        self.model.HistoryOutputRequest(name='H-Output-Internal_Pressure', createStepName=self.step_name, variables=('ALLEN',))
+        # self.model.HistoryOutputRequest(name='H-Output-Internal_Pressure', createStepName=self.step_name, variables=('ALLAE', 'ALLCD', 'ALLDMD', 'ALLFD', 'ALLIE', 'ALLKE', 'ALLPD', 'ALLSE', 'ALLVD', 'ALLWK', 'ETOTAL', 'DMASS'))
+        # self.model.fieldOutputRequests['F-Output-Internal_Pressure'].setValues(numIntervals=50,)
 
 class Tension(Analysis):
     def build(self, endA, endB, previous, ext, inte, deformation, timePeriod):
@@ -1090,6 +1353,30 @@ class Contact:
 
         self.model.rootAssembly.Surface(side1Faces=faces, name=surface_name)
         return surface_name
+    def create_solid_cylinder_surfaces(self, nome_instancia, external=True):
+        """
+        Cria objetos do tipo surface no abaqus para definir as superfícies internas e externas das armaduras sólidas.
+        Dessa forma, é possível estabelecer contatos com as outras camadas. Retorna o nome da superfície criada.
+        """
+        instancia = self.assembly.instances[nome_instancia]
+        internas, externas = list(), list()
+        for face in instancia.part.faces:
+            p = face.pointOn[0]
+            n = face.getNormal()
+
+            if abs(n[2]) < 1e-6:
+                r = (p[0]**2 + p[1]**2)**0.5
+                dot = (p[0]*n[0] + p[1]*n[1]) / r
+
+                if dot > 0.9:
+                    externas.append(instancia.faces[face.index:face.index+1])
+                elif dot < -0.9:
+                    internas.append(instancia.faces[face.index:face.index+1])
+        faces, suffix = (externas, "Ext") if external else (internas, "Int")
+        surface_name = f"Surf-{nome_instancia}-{suffix}"
+
+        self.model.rootAssembly.Surface(side1Faces=faces, name=surface_name)
+        return surface_name
     def create_contact_surfaces(self):
         """
         Cria objetos do tipo surface no abaqus para definir as superfícies internas e externas de todas
@@ -1099,7 +1386,7 @@ class Contact:
         externals, internals = {}, {}
 
         for key, values in layers.items():
-            if issubclass(values['type'], Cylinder):
+            if issubclass(values['type'], Cylinder) and not issubclass(values['type'], Solid_isotropic_cylinder):
                 ext, inte = f'Surf-{key}-Ext', f'Surf-{key}-Int'
                 faces = self.assembly.instances[key].faces
                 self.model.rootAssembly.Surface(side1Faces=faces, name=ext)
@@ -1113,6 +1400,19 @@ class Contact:
                         self.model.rootAssembly.Surface(side2Faces=faces, name=ext)
                         self.model.rootAssembly.Surface(side1Faces=faces, name=inte)
                         externals[ext], internals[inte] = values['type'], values['type']
+            elif issubclass(values['type'], Beam_helix):
+                for instance_name in (x for x in self.assembly.instances.keys() if key.lower() in x.lower()):
+                    if not self.assembly.features[instance_name].isSuppressed():
+                        ext, inte = f'Surf-{instance_name}-Ext', f'Surf-{instance_name}-Int'
+                        edges = self.assembly.instances[instance_name].edges
+                        self.model.rootAssembly.Surface(circumEdges=edges, name=ext)
+                        self.model.rootAssembly.Surface(circumEdges=edges, name=inte)
+                        externals[ext], internals[inte] = values['type'], values['type']
+            elif issubclass(values['type'], Solid_isotropic_cylinder):
+                for instance_name in (x for x in self.assembly.instances.keys() if key.lower() in x.lower()):
+                    if not self.assembly.features[instance_name].isSuppressed():
+                        externals[self.create_solid_cylinder_surfaces(instance_name, True)] = values['type']
+                        internals[self.create_solid_cylinder_surfaces(instance_name, False)] = values['type']
             else:
                 for instance_name in (x for x in self.assembly.instances.keys() if key.lower() in x.lower()):
                     if not self.assembly.features[instance_name].isSuppressed():
@@ -1241,11 +1541,31 @@ class Explicit_contact(Contact):
     #     frictionless_layers = self.select_frictionless_layers(self.ext, self.inte)
     #     self.model.ContactExp(name=f'Contact_{step_name}', createStepName=step_name, contactPropertyAssignments=((GLOBAL, SELF, "ContactFriction"),) + frictionless_layers)
 
+class Explicit_contact_pairs(Contact):
+    def build(self, step_name):
+        print(f"\n================================ {'Explicit Contact Pairs': ^24} ================================\n")
+        frictionless_layers = self.select_frictionless_layers(self.ext, self.inte)
+        pairs = self.create_contact_pairs(self.ext, self.inte)
+        self.model.ContactExp(name=f'Contact_{step_name}', createStepName='Initial', includedPairs = pairs, contactPropertyAssignments=((GLOBAL, SELF, "ContactFriction"),) + frictionless_layers)
+        self.model.interactions[f'Contact_{step_name}'].setValues(globalSmoothing=True)
+
 class Standard_contact(Contact):
     def build(self, step_name):
         print(f"\n================================ {'Standard Contact': ^24} ================================\n")
-        self.model.ContactStd(name='Initial_contact', createStepName='Initial', contactPropertyAssignments=((GLOBAL, SELF, "ContactFrictionless"),))
-        self.create_contact_initialization('Initial_contact', self.ext, self.inte)
+        frictionless_layers = self.select_frictionless_layers(self.ext, self.inte)
+        self.model.ContactStd(name=f'Contact_{step_name}', createStepName='Initial', contactPropertyAssignments=((GLOBAL, SELF, "ContactFriction"),) + frictionless_layers)
+        self.create_contact_initialization(f'Contact_{step_name}', self.ext, self.inte)
+        self.model.interactions[f'Contact_{step_name}'].setValues(globalSmoothing=True)
+
+class Standard_contact_pairs(Contact):
+    def build(self, step_name):
+        print(f"\n================================ {'Standard Contact Pairs': ^24} ================================\n")
+        frictionless_layers = self.select_frictionless_layers(self.ext, self.inte)
+        pairs = self.create_contact_pairs(self.ext, self.inte)
+        self.model.ContactStd(name=f'Contact_{step_name}', createStepName='Initial', includedPairs = pairs, contactPropertyAssignments=((GLOBAL, SELF, "ContactFriction"),) + frictionless_layers)
+        # self.model.ContactStd(name=f'Contact_{step_name}', createStepName='Initial', contactPropertyAssignments=((GLOBAL, SELF, "ContactFriction"),) + frictionless_layers)
+        self.create_contact_initialization(f'Contact_{step_name}', self.ext, self.inte)
+        self.model.interactions[f'Contact_{step_name}'].setValues(globalSmoothing=True)
 
 class Tied_contact(Contact):
     def build(self, step_name):
@@ -1270,7 +1590,7 @@ class Surf_to_surf_Static_contact(Contact):
                 if cyl1 and cyl2:
                     if j == 0:
                         main, secondary = choose_main_secondary(surface1, type1, surface2, type2)
-                        self.model.SurfaceToSurfaceContactStd(name=f'Contact_{main}-{secondary}', createStepName=step_name, main = self.assembly.surfaces[main], secondary = self.assembly.surfaces[secondary], sliding = FINITE,interactionProperty="ContactFrictionless", adjustMethod=OVERCLOSED)#, mechanicalConstraint=PENALTY)
+                        self.model.SurfaceToSurfaceContactStd(name=f'Contact_{i}-{j}', createStepName=step_name, main = self.assembly.surfaces[main], secondary = self.assembly.surfaces[secondary], sliding = SMALL,interactionProperty="ContactFrictionless", adjustMethod=OVERCLOSED, surfaceSmoothing = AUTOMATIC)#, mechanicalConstraint=PENALTY)
                         print(f"Contato entre as superfícies {surface1} e {surface2}")
                         break
                     else:
@@ -1278,7 +1598,7 @@ class Surf_to_surf_Static_contact(Contact):
                 if not cyl1 and not cyl2:
                     continue
                 main, secondary = choose_main_secondary(surface1, type1, surface2, type2)
-                self.model.SurfaceToSurfaceContactStd(name=f'Contact_{main}-{secondary}', createStepName=step_name, main = self.assembly.surfaces[main], secondary = self.assembly.surfaces[secondary], sliding = FINITE,interactionProperty="ContactFriction", adjustMethod=OVERCLOSED)#, mechanicalConstraint=PENALTY)
+                self.model.SurfaceToSurfaceContactStd(name=f'Contact_{i}-{j}', createStepName=step_name, main = self.assembly.surfaces[main], secondary = self.assembly.surfaces[secondary], sliding = FINITE,interactionProperty="ContactFriction", adjustMethod=OVERCLOSED, surfaceSmoothing = AUTOMATIC)#, mechanicalConstraint=PENALTY)
                 print(f"Contato entre as superfícies {surface1} e {surface2}")
                 if not cyl1 or cyl2:
                     break
@@ -1320,4 +1640,4 @@ class Surf_to_surf_Explicit_contact(Contact):
         #     self.model.HistoryOutputRequest(name=f'H-Output-A{i}', createStepName=step_name, variables=ALL, interactions=(name,))
         #     self.model.historyOutputRequests[f'H-Output-A{i}'].setValues(numIntervals=200,)
 
-layers = read_json(r"risers\witz-si.json")
+layers = read_json(r"risers\witz-si-Cruz.json")

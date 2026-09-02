@@ -1,0 +1,107 @@
+{
+    "InterlockedCarcass": {
+        "type": "orthotropic_cylinder",
+        "name": "InterlockedCarcass",
+        "length": null,
+        "mid_diameter": 66.7E-3,
+        "thickness": 3.5E-3,
+        "name_material": "AISI304",
+        "young_modulus": 193000E6,
+        "poisson": 0.3,
+        "density": 7.85E3,
+        "n": 1,
+        "Ix": 20E-12,
+        "Iy": 556E-12,
+        "A": 19.6E-6,
+        "J": 6.5E-12,
+        "lay_angle": 87.5
+    },
+
+    "PressureSheath": {
+        "type": "isotropic_cylinder",
+        "name": "PressureSheath",
+        "length": null,
+        "mid_diameter": 75.15E-3,
+        "thickness": 4.95E-3,
+        "name_material": "Grilamid",
+        "young_modulus": 284E6,
+        "poisson": 0.4,
+        "density": 0.97E3
+    },
+
+    "PressureReinforcement": {
+        "type": "orthotropic_cylinder",
+        "name": "PressureReinforcement",
+        "length": null,
+        "mid_diameter": 86.3E-3,
+        "thickness": 6.2E-3,
+        "name_material": "FI15",
+        "young_modulus": 207000E6,
+        "poisson": 0.3,
+        "density": 7.85E3,
+        "n": 2,
+        "Ix": 100E-12,
+        "Iy": 771E-12,
+        "A": 51.5E-6,
+        "J": 204.6E-12,
+        "lay_angle": 85.5
+    },
+
+    "InnerAntiFrictionTape": {
+        "type": "isotropic_cylinder",
+        "name": "InnerAntiFrictionTape",
+        "length": null,
+        "mid_diameter": 94E-3,
+        "thickness": 1.5E-3,
+        "name_material": "Rilsan",
+        "young_modulus": 301E6,
+        "poisson": 0.4,
+        "density": 0.97E3
+    },
+
+    "InnerArmour": {
+        "type": "solid_helix",
+        "name": "InnerArmour",
+        "pitch": null,
+        "mid_diameter": 98.5E-3,
+        "thickness": 3E-3,
+        "name_material": "FI41",
+        "young_modulus": 211000E6,
+        "poisson": 0.3,
+        "density": 7.85E3,
+        "n": 40,
+        "base": 6E-3,
+        "revolve_direction": "OFF",
+        "lay_angle": 35,
+        "length": 0
+    },
+
+    "OuterAntiFrictionTape": {
+        "type": "isotropic_cylinder",
+        "name": "OuterAntiFrictionTape",
+        "length": null,
+        "mid_diameter": 103E-3,
+        "thickness": 1.5E-3,
+        "name_material": "Rilsan",
+        "young_modulus": 301E6,
+        "poisson": 0.4,
+        "density": 0.97E3
+    },
+
+    "OuterArmour": {
+        "type": "solid_helix",
+        "name": "OuterArmour",
+        "pitch": null,
+        "n": 44,
+        "mid_diameter": 107.5E-3,
+        "thickness": 3E-3,
+        "name_material": "FI41",
+        "young_modulus": 211000E6,
+        "poisson": 0.3,
+        "density": 7.85e3,
+        "lay_angle": 35,
+        "base": 6E-3,
+        "revolve_direction": "ON",
+        "length": 0
+    }
+}

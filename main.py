@@ -49,7 +49,7 @@ from structure import Model, layers
 # b = Model(
 #     name = "Modelo-Settling",
 #     cases = [
-#         ("ss",  {"timePeriod": 1}),
+#         ("ss",  {"timePeriod": 0.01}),
 #     ]
 # )
 
@@ -66,10 +66,11 @@ from structure import Model, layers
 c = Model(
     name = "Modelo-Bending",
     cases = [
-        # ("ep",  {"pressure": 2.406E6, "timePeriod": 0.01}),
-        # ("ip",  {"pressure": 0.7, "timePeriod": 0.3}),
+        # ("eps",  {"pressure": 2E6, "timePeriod": 0.2}),
+        ("ep",  {"pressure": 1E6, "timePeriod": 0.05}),
+        ("ip",  {"pressure": 30E6, "timePeriod": 0.2}),
         ("b",  {"curvature": 1, "timePeriod": 0.2}),
-        # ("is",  {"pressure": 3.704E6}),
+        # ("is",  {"pressure": 1E6}),
     ],
     # inp_job=job_name
 )

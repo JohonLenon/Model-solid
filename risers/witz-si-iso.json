@@ -1,0 +1,19 @@
+{
+    "PressureReinforcement": {
+        "type": "isotropic_cylinder",
+        "name": "PressureReinforcement",
+        "length": null,
+        "mid_diameter": 86.3E-3,
+        "thickness": 6.2E-3,
+        "name_material": "FI15",
+        "young_modulus": 207000E6,
+        "poisson": 0.3,
+        "density": 7.85E3,
+        "n": 2,
+        "Ix": 100E-12,
+        "Iy": 771E-12,
+        "A": 51.5E-6,
+        "J": 204.6E-12,
+        "lay_angle": 85.5
+    }
+}
